@@ -7,10 +7,6 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Reflection;
 using System.Numerics;
-using SoulsAssetPipeline.Animation;
-using SoulsAssetPipeline.AnimationImporting;
-using SoulsAssetPipeline.AnimationExporting;
-using HKX2;
 
 namespace DSRPorter
 {

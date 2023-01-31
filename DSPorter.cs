@@ -1,13 +1,13 @@
-﻿using SoulsFormats;
-using SoulsFormatsExtensions;
-using DSPorterUtil;
-using System.Text;
+﻿using System.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Reflection;
 using System.Numerics;
+using DSPorterUtil;
+using SoulsFormats;
+using SoulsFormatsExtensions;
 
 /*
  * TODO
@@ -135,7 +135,6 @@ namespace DSRPorter
             Debug.WriteLine("Finished: EMEVD");
             _outputLog.Add($@"Finished: event\*.emevd");
         }
-
 
         private void DSRPorter_MSB()
         {
