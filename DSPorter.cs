@@ -690,8 +690,6 @@ namespace DSRPorter
 
         private void DSRPorter_GenericTPFs(string directory, string searchPattern, bool compress)
         {
-            if (Directory.Exists($@"{directory}\{searchPattern}"))
-                _outputLog.Add($@"Not ported, must be done manually: {directory}\{searchPattern}");
             /*
             foreach (var path in Directory.GetFiles($@"{_dataPath_PTDE}\{directory}", searchPattern))
             {
@@ -752,11 +750,9 @@ namespace DSRPorter
 
                     taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")));
                     taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")));
-                    taskList.Add(Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)));
-                    taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"font", "*.tpf", true)));
-                    taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"menu", "*.tpf", true)));
-
-
+                    taskList.Add(Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true))); // TODO: make sure these actually work.
+                    //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"font", "*.tpf", true)));
+                    //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"menu", "*.tpf", true)));
                 }
                 Task.WaitAll(taskList.ToArray());
                 if (true)
