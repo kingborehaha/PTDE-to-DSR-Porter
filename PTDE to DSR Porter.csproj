@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <RootNamespace>PTDE_to_DSR_Porter</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="DSLuaDecompiler\**" />
+    <Compile Remove="LuaDecompilerCore\**" />
+    <Compile Remove="SoulsFormatsExtensions\**" />
+    <Compile Remove="SoulsFormats\**" />
+    <EmbeddedResource Remove="DSLuaDecompiler\**" />
+    <EmbeddedResource Remove="LuaDecompilerCore\**" />
+    <EmbeddedResource Remove="SoulsFormatsExtensions\**" />
+    <EmbeddedResource Remove="SoulsFormats\**" />
+    <None Remove="DSLuaDecompiler\**" />
+    <None Remove="LuaDecompilerCore\**" />
+    <None Remove="SoulsFormatsExtensions\**" />
+    <None Remove="SoulsFormats\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="SoulsFormatsExtensions\SoulsFormatsExtensions.csproj" />
+    <ProjectReference Include="SoulsFormats\SoulsFormats.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Paramdex\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
