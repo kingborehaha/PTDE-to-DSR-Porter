@@ -10,12 +10,13 @@ namespace DSRPorter
     {
         public static readonly string Version = Application.ProductVersion;
         public static readonly string ProgramTitle = $"PTDE to DSR porter";
-        private DSPorter _dsPorter = new();
+        public DSPorter _dsPorter;
 
         public MainForm()
         {
             InitializeComponent();
             this.Text = ProgramTitle;
+            _dsPorter = new(ProgramProgressBar);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -26,82 +27,47 @@ namespace DSRPorter
                 cb_fields_share_row.Enabled = false;
         }
 
-        private void loadFile(FileDialog fileDialog)
+        private void LoadFile(FileDialog fileDialog)
         {
             if (fileDialog.ShowDialog() == DialogResult.OK)
             {
                 CheckEnableActivateButton();
             }
         }
-        private void b_browse_old_Click(object sender, EventArgs e)
+        private void Button_PTDE_Browse(object sender, EventArgs e)
         {
-            loadFile(openFileDialog_old);
-            t_VersionOld.Text = "Loaded";
+            LoadFile(openFileDialog_old);
+            Text_Loaded_PTDE.Text = "Loaded";
             UpdateConsole("Old param selected");
         }
 
-        private void b_browse_new_Click(object sender, EventArgs e)
+        private void Button_DSR_Browse(object sender, EventArgs e)
         {
-            loadFile(openFileDialog_new);
-            t_VersionNew.Text = "Loaded";
+            LoadFile(openFileDialog_new);
+            Text_Loaded_DSR.Text = "Loaded";
             UpdateConsole("New param selected");
         }
 
         public void UpdateConsole(string text)
         {
-            t_console.Text = text;
             Application.DoEvents();
         }
 
         private void CheckEnableActivateButton()
         {
             if (openFileDialog_old.FileName != "" && openFileDialog_new.FileName != "")
-                b_activate.Enabled = true;
+                Button_Activate.Enabled = true;
             return;
         }
 
-        private void b_activate_Click(object sender, EventArgs e)
+        private void Button_Activate_Click(object sender, EventArgs e)
         {
+            ProgramProgressBar.Value = 0;
             string ptdePath = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\SOTE storage\Shadow of the Eclipse v2.0.0 DSR input\DATA";
-            string dsrPath = @"V:\VSteamLibrary\steamapps\common\DARK SOULS REMASTERED";
+            string dsrPath = @"Y:\Projects Y\Modding\DSR\DSR port input";
+            //Task.Run(() => _dsPorter.Run(ptdePath, dsrPath));
             _dsPorter.Run(ptdePath, dsrPath);
-        }
-
-        private void toggle_buttons_dupe()
-        {
-            if (cb_dupe.Checked)
-            {
-                cb_dupe_no_old.Enabled = true;
-                cb_dupe_no_both.Enabled = true;
-                toggle_buttons_dupe_no_old();
-            }
-            else
-            {
-                cb_dupe_no_old.Enabled = false;
-                cb_dupe_no_both.Enabled = false;
-            }
-        }
-
-        private void toggle_buttons_dupe_no_old()
-        {
-            if (cb_dupe_no_old.Checked)
-            {
-                cb_dupe_no_both.Enabled = false;
-            }
-            else
-            {
-                cb_dupe_no_both.Enabled = true;
-            }
-        }
- 
-        private void cb_dupe_CheckedChanged(object sender, EventArgs e)
-        {
-            toggle_buttons_dupe();
-        }
-
-        private void cb_dupe_no_old_CheckedChanged(object sender, EventArgs e)
-        {
-            toggle_buttons_dupe_no_old();
+            Button_Activate.Enabled = false;
         }
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)
@@ -140,14 +106,14 @@ namespace DSRPorter
         {
             string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
             openFileDialog_old.FileName = files[0];
-            t_VersionOld.Text = "Loaded";
+            Text_Loaded_PTDE.Text = "Loaded";
             CheckEnableActivateButton();
         }
         private void t_VersionNew_DragDrop(object sender, DragEventArgs e)
         {
             string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
             openFileDialog_new.FileName = files[0];
-            t_VersionNew.Text = "Loaded";
+            Text_Loaded_DSR.Text = "Loaded";
             CheckEnableActivateButton();
         }
         private void t_VersionOld_DragOver(object sender, DragEventArgs e)
@@ -167,12 +133,6 @@ namespace DSRPorter
 
         private void button1_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Bore Pararm Comparison - Made by kingborehaha/george"
-                + "\n\nThis tool is for logging differences between param files, which includes regulation.bin, GameParam.parambnd, and individual .param files."
-                + "\n\nYou can drag & drop param files onto UI elements to automatically select them, or just click the two \"Open\" buttons to browse."
-                + "\n\nThis tool can compare parameters with differing paramdefs. To include addtional paramdefs, place them into the \"Paramdex ALT\" folder, then within in the right game folder."
-                , "Info" 
-                );
         }
     }
 }

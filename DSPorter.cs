@@ -121,6 +121,13 @@ namespace DSRPorter
 
         private readonly bool _useDSRToneMapBankValues = true;
 
+        private readonly ProgressBar _progressBar;
+
+        public DSPorter(ProgressBar progressBar)
+        {
+            _progressBar = progressBar;
+        }
+
         private void DSRPorter_EMEVD()
         {
             var paths = Directory.GetFiles($@"{_dataPath_PTDE}\event", "*.emevd");
@@ -135,8 +142,10 @@ namespace DSRPorter
             _outputLog.Add($@"Finished: event\*.emevd");
         }
 
+        private bool _MSBFinished = false;
         private void DSRPorter_MSB()
         {
+            _MSBFinished = false;
             var paths = Directory.GetFiles($@"{_dataPath_PTDE}\map\mapstudio", "*.msb");
             if (paths.Length == 0)
                 return;
@@ -201,6 +210,7 @@ namespace DSRPorter
             }
             Debug.WriteLine("Finished: MSB");
             _outputLog.Add($@"Finished: map\mapstudio\*.msb");
+            _MSBFinished = true;
         }
 
         /// <summary>
@@ -229,6 +239,7 @@ namespace DSRPorter
             var paths = Directory.GetFiles($@"{_dataPath_PTDE}\sfx", "*.ffxbnd");
             if (paths.Length == 0)
                 return;
+
             foreach (var path in paths)
             {
                 var bnd_old = BND3.Read(path);
@@ -409,6 +420,12 @@ namespace DSRPorter
             var paths = Directory.GetFiles(datapath, "*.parambnd");
             if (paths.Length == 0)
                 return;
+
+            while (!_MSBFinished || !_paramdefs_ptde.Any() || !_paramdefs_dsr.Any())
+            {
+                Thread.Sleep(100);
+            }
+
             foreach (string bndPath_old in paths)
             {
                 string bndPath_new = bndPath_old.Replace(_dataPath_PTDE, $@"{_dataPath_DSR}") + ".dcx";
@@ -764,46 +781,57 @@ namespace DSRPorter
                 }
             }
         }
+        public void IncrementTaskBar(int i)
+        {
+            _progressBar.Increment(i);
+        }
 
-        public void Run(string ptdePath, string dsrPath)
+        public async Task Run(string ptdePath, string dsrPath)
         {
             Directory.CreateDirectory(_outputPath);
             {
+                _paramdefs_ptde.Clear();
+                _paramdefs_dsr.Clear();
                 _dataPath_PTDE = ptdePath;
                 _dataPath_DSR = dsrPath;
 
                 List<Task> taskList = new();
-
-                if (true)
                 {
-                    if (false)
-                    {
-                        taskList.Add(Task.Run(() => DSRPorter_FFX())); // Done, needs more in-game testing though.
-                        taskList.Add(Task.Run(() => DSRPorter_ESD())); // Done
-                        taskList.Add(Task.Run(() => DSRPorter_EMEVD())); // Done
-                        taskList.Add(Task.Run(() => DSRPorter_MSB())); //
-                        taskList.Add(Task.Run(() => DSRPorter_ANIBND())); // Done, may have per-enemy problems though.
-                        taskList.Add(Task.Run(() => DSRPorter_OBJBND())); // test
-                        taskList.Add(Task.Run(() => DSRPorter_MSGBND())); // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
-                        taskList.Add(Task.Run(() => DSRPorter_LUABND())); // Seems good? Needs more testing.
-
-                        taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")));
-                        taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")));
-                        taskList.Add(Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true))); // TODO: make sure these actually work.
-                        //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"font", "*.tpf", true)));
-                        //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"menu", "*.tpf", true)));
-                    }
+                    taskList.Add(Task.Run(() => DSRPorter_MSB())); // Done, needs more in-game testing though.
                     taskList.Add(Task.Run(() => DSRPorter_FFX())); // Done, needs more in-game testing though.
-                    Task.WaitAll(taskList.ToArray());
-                    if (false)
+                    taskList.Add(Task.Run(() => DSRPorter_ESD())); // Done
+                    taskList.Add(Task.Run(() => DSRPorter_EMEVD())); // Done
+                    taskList.Add(Task.Run(() => DSRPorter_ANIBND())); // Done, may have per-enemy problems though.
+                    taskList.Add(Task.Run(() => DSRPorter_OBJBND())); // test
+                    taskList.Add(Task.Run(() => DSRPorter_MSGBND())); // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
+                    taskList.Add(Task.Run(() => DSRPorter_LUABND())); // Seems good? Needs more testing.
+
+                    taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")));
+                    taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")));
+                    taskList.Add(Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true))); // TODO: make sure these actually work.
+                }
+
+                {
+                    taskList.Add(Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")));
+                    taskList.Add(Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")));
+                    taskList.Add(Task.Run(() => DSRPorter_GameParam())); // Done
+                    taskList.Add(Task.Run(() => DSRPorter_DrawParam())); // Done, may need more manual adjustments. Do in-game testing.
+                    var taskCount = taskList.Count();
+                    while (taskList.Any())
                     {
-                        // Must run after MSB
-                        _paramdefs_ptde = Util.LoadParamDefXmls("DS1");
-                        _paramdefs_dsr = Util.LoadParamDefXmls("DS1R");
-                        DSRPorter_GameParam(); // Done
-                        DSRPorter_DrawParam(); // Done, may need more manual adjustments. Do in-game testing.
+                        Task[] taskArray = taskList.ToArray();
+                        await Task.WhenAny(taskArray);
+                        foreach (var task in taskArray)
+                        {
+                            if (task.IsCompleted)
+                            {
+                                _progressBar.Invoke(new Action(() => _progressBar.Increment(1 + (100 / taskCount))));
+                                taskList.Remove(task);
+                            }
+                        }
                     }
                 }
+
                 _outputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                 LogUnportedFiles();
 

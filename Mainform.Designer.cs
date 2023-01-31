@@ -29,24 +29,22 @@
         private void InitializeComponent()
         {
             this.openFileDialog_old = new System.Windows.Forms.OpenFileDialog();
-            this.b_browse_old = new System.Windows.Forms.Button();
-            this.b_activate = new System.Windows.Forms.Button();
-            this.b_browse_new = new System.Windows.Forms.Button();
-            this.t_console = new System.Windows.Forms.TextBox();
+            this.Button_Browse_PTDE = new System.Windows.Forms.Button();
+            this.Button_Activate = new System.Windows.Forms.Button();
+            this.Button_Browse_DSR = new System.Windows.Forms.Button();
             this.openFileDialog_new = new System.Windows.Forms.OpenFileDialog();
             this.cb_dupe = new System.Windows.Forms.CheckBox();
             this.cb_dupe_no_old = new System.Windows.Forms.CheckBox();
             this.cb_dupe_no_both = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.t_VersionNew = new System.Windows.Forms.TextBox();
-            this.t_VersionOld = new System.Windows.Forms.TextBox();
+            this.Text_Loaded_DSR = new System.Windows.Forms.TextBox();
+            this.Text_Loaded_PTDE = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
-            this.menu_GameType = new System.Windows.Forms.ComboBox();
-            this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.ProgramProgressBar = new System.Windows.Forms.ProgressBar();
             this.button1 = new System.Windows.Forms.Button();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.cb_LogAddedRemovedRowCells = new System.Windows.Forms.CheckBox();
@@ -68,53 +66,42 @@
             this.openFileDialog_old.Title = "Select old Parambnd or Regulation.bin";
             this.openFileDialog_old.FileOk += new System.ComponentModel.CancelEventHandler(this.openFileDialog_old_FileOk);
             // 
-            // b_browse_old
+            // Button_Browse_PTDE
             // 
-            this.b_browse_old.AllowDrop = true;
-            this.b_browse_old.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.b_browse_old.Location = new System.Drawing.Point(10, 151);
-            this.b_browse_old.Name = "b_browse_old";
-            this.b_browse_old.Size = new System.Drawing.Size(74, 24);
-            this.b_browse_old.TabIndex = 60;
-            this.b_browse_old.Text = "Open Old";
-            this.b_browse_old.UseVisualStyleBackColor = true;
-            this.b_browse_old.Click += new System.EventHandler(this.b_browse_old_Click);
-            this.b_browse_old.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragDrop);
-            this.b_browse_old.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragOver);
+            this.Button_Browse_PTDE.AllowDrop = true;
+            this.Button_Browse_PTDE.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.Button_Browse_PTDE.Location = new System.Drawing.Point(10, 151);
+            this.Button_Browse_PTDE.Name = "Button_Browse_PTDE";
+            this.Button_Browse_PTDE.Size = new System.Drawing.Size(74, 24);
+            this.Button_Browse_PTDE.TabIndex = 60;
+            this.Button_Browse_PTDE.Text = "Browse";
+            this.Button_Browse_PTDE.UseVisualStyleBackColor = true;
+            this.Button_Browse_PTDE.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragDrop);
+            this.Button_Browse_PTDE.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragOver);
             // 
-            // b_activate
+            // Button_Activate
             // 
-            this.b_activate.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.b_activate.Location = new System.Drawing.Point(283, 152);
-            this.b_activate.Name = "b_activate";
-            this.b_activate.Size = new System.Drawing.Size(74, 24);
-            this.b_activate.TabIndex = 61;
-            this.b_activate.Text = "Compare";
-            this.b_activate.UseVisualStyleBackColor = true;
-            this.b_activate.Click += new System.EventHandler(this.b_activate_Click);
+            this.Button_Activate.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.Button_Activate.Location = new System.Drawing.Point(283, 152);
+            this.Button_Activate.Name = "Button_Activate";
+            this.Button_Activate.Size = new System.Drawing.Size(74, 24);
+            this.Button_Activate.TabIndex = 61;
+            this.Button_Activate.Text = "Port";
+            this.Button_Activate.UseVisualStyleBackColor = true;
+            this.Button_Activate.Click += new System.EventHandler(this.Button_Activate_Click);
             // 
-            // b_browse_new
+            // Button_Browse_DSR
             // 
-            this.b_browse_new.AllowDrop = true;
-            this.b_browse_new.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.b_browse_new.Location = new System.Drawing.Point(147, 152);
-            this.b_browse_new.Name = "b_browse_new";
-            this.b_browse_new.Size = new System.Drawing.Size(74, 24);
-            this.b_browse_new.TabIndex = 63;
-            this.b_browse_new.Text = "Open New";
-            this.b_browse_new.UseVisualStyleBackColor = true;
-            this.b_browse_new.Click += new System.EventHandler(this.b_browse_new_Click);
-            this.b_browse_new.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragDrop);
-            this.b_browse_new.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragOver);
-            // 
-            // t_console
-            // 
-            this.t_console.Location = new System.Drawing.Point(8, 294);
-            this.t_console.Name = "t_console";
-            this.t_console.ReadOnly = true;
-            this.t_console.Size = new System.Drawing.Size(349, 23);
-            this.t_console.TabIndex = 24;
-            this.t_console.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.Button_Browse_DSR.AllowDrop = true;
+            this.Button_Browse_DSR.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.Button_Browse_DSR.Location = new System.Drawing.Point(147, 152);
+            this.Button_Browse_DSR.Name = "Button_Browse_DSR";
+            this.Button_Browse_DSR.Size = new System.Drawing.Size(74, 24);
+            this.Button_Browse_DSR.TabIndex = 63;
+            this.Button_Browse_DSR.Text = "Browse";
+            this.Button_Browse_DSR.UseVisualStyleBackColor = true;
+            this.Button_Browse_DSR.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragDrop);
+            this.Button_Browse_DSR.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragOver);
             // 
             // openFileDialog_new
             // 
@@ -132,7 +119,6 @@
             this.cb_dupe.TabIndex = 65;
             this.cb_dupe.Text = "Log dupe IDs";
             this.cb_dupe.UseVisualStyleBackColor = true;
-            this.cb_dupe.CheckedChanged += new System.EventHandler(this.cb_dupe_CheckedChanged);
             // 
             // cb_dupe_no_old
             // 
@@ -143,7 +129,6 @@
             this.cb_dupe_no_old.TabIndex = 67;
             this.cb_dupe_no_old.Text = "Don\'t log dupe IDs found in OLD (log all in new)\r\n";
             this.cb_dupe_no_old.UseVisualStyleBackColor = true;
-            this.cb_dupe_no_old.CheckedChanged += new System.EventHandler(this.cb_dupe_no_old_CheckedChanged);
             // 
             // cb_dupe_no_both
             // 
@@ -167,40 +152,40 @@
             this.label1.TabIndex = 71;
             this.label1.Text = "Dupe IDs";
             // 
-            // t_VersionNew
+            // Text_Loaded_DSR
             // 
-            this.t_VersionNew.AllowDrop = true;
-            this.t_VersionNew.Location = new System.Drawing.Point(147, 117);
-            this.t_VersionNew.Name = "t_VersionNew";
-            this.t_VersionNew.ReadOnly = true;
-            this.t_VersionNew.Size = new System.Drawing.Size(74, 23);
-            this.t_VersionNew.TabIndex = 72;
-            this.t_VersionNew.Text = "Unloaded";
-            this.t_VersionNew.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.t_VersionNew.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragDrop);
-            this.t_VersionNew.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragOver);
+            this.Text_Loaded_DSR.AllowDrop = true;
+            this.Text_Loaded_DSR.Location = new System.Drawing.Point(147, 117);
+            this.Text_Loaded_DSR.Name = "Text_Loaded_DSR";
+            this.Text_Loaded_DSR.ReadOnly = true;
+            this.Text_Loaded_DSR.Size = new System.Drawing.Size(74, 23);
+            this.Text_Loaded_DSR.TabIndex = 72;
+            this.Text_Loaded_DSR.Text = "Unloaded";
+            this.Text_Loaded_DSR.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.Text_Loaded_DSR.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragDrop);
+            this.Text_Loaded_DSR.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionNew_DragOver);
             // 
-            // t_VersionOld
+            // Text_Loaded_PTDE
             // 
-            this.t_VersionOld.AllowDrop = true;
-            this.t_VersionOld.Location = new System.Drawing.Point(10, 117);
-            this.t_VersionOld.Name = "t_VersionOld";
-            this.t_VersionOld.ReadOnly = true;
-            this.t_VersionOld.Size = new System.Drawing.Size(74, 23);
-            this.t_VersionOld.TabIndex = 73;
-            this.t_VersionOld.Text = "Unloaded";
-            this.t_VersionOld.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.t_VersionOld.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragDrop);
-            this.t_VersionOld.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragOver);
+            this.Text_Loaded_PTDE.AllowDrop = true;
+            this.Text_Loaded_PTDE.Location = new System.Drawing.Point(10, 117);
+            this.Text_Loaded_PTDE.Name = "Text_Loaded_PTDE";
+            this.Text_Loaded_PTDE.ReadOnly = true;
+            this.Text_Loaded_PTDE.Size = new System.Drawing.Size(74, 23);
+            this.Text_Loaded_PTDE.TabIndex = 73;
+            this.Text_Loaded_PTDE.Text = "Unloaded";
+            this.Text_Loaded_PTDE.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.Text_Loaded_PTDE.DragDrop += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragDrop);
+            this.Text_Loaded_PTDE.DragOver += new System.Windows.Forms.DragEventHandler(this.t_VersionOld_DragOver);
             // 
             // label2
             // 
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(10, 99);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(77, 15);
+            this.label2.Size = new System.Drawing.Size(88, 15);
             this.label2.TabIndex = 74;
-            this.label2.Text = "Old Version #";
+            this.label2.Text = "PTDE Mod Files";
             // 
             // label3
             // 
@@ -209,27 +194,7 @@
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(82, 15);
             this.label3.TabIndex = 75;
-            this.label3.Text = "New Version #";
-            // 
-            // menu_GameType
-            // 
-            this.menu_GameType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.menu_GameType.FormattingEnabled = true;
-            this.menu_GameType.Items.AddRange(new object[] {
-            "[overwritten]"});
-            this.menu_GameType.Location = new System.Drawing.Point(283, 117);
-            this.menu_GameType.Name = "menu_GameType";
-            this.menu_GameType.Size = new System.Drawing.Size(74, 23);
-            this.menu_GameType.TabIndex = 76;
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(300, 99);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(38, 15);
-            this.label4.TabIndex = 77;
-            this.label4.Text = "Game";
+            this.label3.Text = "DSR Mod Files";
             // 
             // label5
             // 
@@ -256,15 +221,13 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.ProgramProgressBar);
             this.tabPage1.Controls.Add(this.button1);
-            this.tabPage1.Controls.Add(this.t_console);
-            this.tabPage1.Controls.Add(this.b_browse_old);
-            this.tabPage1.Controls.Add(this.b_activate);
-            this.tabPage1.Controls.Add(this.b_browse_new);
-            this.tabPage1.Controls.Add(this.t_VersionNew);
-            this.tabPage1.Controls.Add(this.label4);
-            this.tabPage1.Controls.Add(this.t_VersionOld);
-            this.tabPage1.Controls.Add(this.menu_GameType);
+            this.tabPage1.Controls.Add(this.Button_Browse_PTDE);
+            this.tabPage1.Controls.Add(this.Button_Activate);
+            this.tabPage1.Controls.Add(this.Button_Browse_DSR);
+            this.tabPage1.Controls.Add(this.Text_Loaded_DSR);
+            this.tabPage1.Controls.Add(this.Text_Loaded_PTDE);
             this.tabPage1.Controls.Add(this.label2);
             this.tabPage1.Controls.Add(this.label3);
             this.tabPage1.Location = new System.Drawing.Point(4, 24);
@@ -274,6 +237,13 @@
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Main";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // ProgramProgressBar
+            // 
+            this.ProgramProgressBar.Location = new System.Drawing.Point(6, 296);
+            this.ProgramProgressBar.Name = "ProgramProgressBar";
+            this.ProgramProgressBar.Size = new System.Drawing.Size(353, 23);
+            this.ProgramProgressBar.TabIndex = 80;
             // 
             // button1
             // 
@@ -422,21 +392,18 @@
 
         #endregion
         private OpenFileDialog openFileDialog_old;
-        private TextBox t_console;
-        private Button b_browse_old;
-        private Button b_activate;
-        private Button b_browse_new;
+        private Button Button_Browse_PTDE;
+        private Button Button_Activate;
+        private Button Button_Browse_DSR;
         private OpenFileDialog openFileDialog_new;
         private CheckBox cb_dupe;
         private CheckBox cb_dupe_no_old;
         private CheckBox cb_dupe_no_both;
         private Label label1;
-        private TextBox t_VersionNew;
-        private TextBox t_VersionOld;
+        private TextBox Text_Loaded_DSR;
+        private TextBox Text_Loaded_PTDE;
         private Label label2;
         private Label label3;
-        private ComboBox menu_GameType;
-        private Label label4;
         private Label label5;
         private TabControl tabControl1;
         private TabPage tabPage1;
@@ -450,5 +417,6 @@
         private CheckBox cb_LogAddedRemovedRowCells;
         private Label label7;
         private Button button1;
+        private ProgressBar ProgramProgressBar;
     }
 }
