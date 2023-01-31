@@ -117,7 +117,6 @@ namespace DSRPorter
         private ConcurrentBag<string> _outputLog = new();
 
         private readonly bool _enableScaledObjectAdjustments = false;
-        private readonly bool _DEBUG_drawparamcomparison = false; // note: prevents drawparam transferring when enabled
         private readonly bool _Is_SOTE = true;
 
         private readonly bool _useDSRToneMapBankValues = true;
@@ -273,6 +272,7 @@ namespace DSRPorter
             var paths = Directory.GetFiles($@"{_dataPath_PTDE}\msg", "*.msgbnd", SearchOption.AllDirectories);
             if (paths.Length == 0)
                 return;
+
             List<BinderFile> files_old = new();
             foreach (var path in paths)
             {
@@ -294,8 +294,7 @@ namespace DSRPorter
                     var file_old = files_old.Find(e => e.ID == file_new.ID);
                     if (file_old == null)
                     {
-                        Debugger.Break();
-                        continue;
+                        throw new FileNotFoundException($"Couldn't find file ID {file_new.ID} in PTDE MSGBNDs.");
                     }
                     switch (file_new.ID)
                     {
@@ -315,6 +314,7 @@ namespace DSRPorter
             _outputLog.Add($@"Finished: msg\*.msgbnd");
         }
 
+        /*
         /// <summary>
         /// Debug thing to figure out how drawvalues were changed from PTDE to DSR.
         /// </summary>
@@ -351,6 +351,7 @@ namespace DSRPorter
             }
             return;
         }
+        */
 
         private void AdjustDrawParamRow(PARAM param, PARAM.Row row_old, PARAM.Row? row_new)
         {
@@ -404,10 +405,9 @@ namespace DSRPorter
                         }
                         else
                         {
-                            Debugger.Break();
+                            throw new FileNotFoundException($"Couldn't find {item.Key} in DSR parambnd.");
                         }
                         return;
-                        //throw new Exception($"Couldn't find {item.Key} in DSR params");
                     }
 
                     PARAM param_old = paramList_old[item.Key];
@@ -445,10 +445,7 @@ namespace DSRPorter
                         if (isDrawParam)
                         {
                             PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_old.ID);
-                            if (_DEBUG_drawparamcomparison)
-                            {
-                                DEBUG_CompareDrawParamRows(item.Key, row_old, row_new);
-                            }
+                            //DEBUG_CompareDrawParamRows(item.Key, row_old, row_new);
                             AdjustDrawParamRow(param_old, row_old, row_new);
                         }
                         TransferParamRow(row_old, row_target);
@@ -590,6 +587,7 @@ namespace DSRPorter
             Debug.WriteLine("Finished: ESDs");
             _outputLog.Add($@"Finished: chr\*.esd");
         }
+
         private void DSRPorter_GenericFiles(string directory, string searchPattern)
         {
             var paths = Directory.GetFiles($@"{_dataPath_PTDE}\{directory}", searchPattern);
@@ -602,6 +600,7 @@ namespace DSRPorter
             Debug.WriteLine("Finished: Generic Files");
             _outputLog.Add($@"Finished: {directory}\{searchPattern}"); ;
         }   
+
         private void DSRPorter_GenericBNDs(string directory, string searchPattern, bool compress, bool searchInnerFolders = false)
         {
             SearchOption searchOption = searchInnerFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
@@ -628,9 +627,6 @@ namespace DSRPorter
             Debug.WriteLine("Finished: Generic BNDs");
             _outputLog.Add($@"Finished: {directory}\{searchPattern}");
         }
-
-
-        public string _luaDecompilerPath = $@"{Directory.GetCurrentDirectory()}\DSLuaDecompiler\DSLuaDecompiler.exe";
 
         private void DSRPorter_LUABND()
         {
@@ -773,19 +769,6 @@ namespace DSRPorter
                 }
                 _outputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                 LogUnportedFiles();
-                
-                /*
-                //debug
-                List<string> superDebugOutput = new();
-                foreach (var val in dict)
-                {
-                    superDebugOutput.Add(val.Key);
-                    superDebugOutput.AddRange(val.Value);
-                }
-                File.WriteAllLines($@"{_outputPath}\DebugDrawParamDiff.txt", superDebugOutput);
-                dict.Clear();
-                //
-                */
 
                 File.WriteAllLines($@"{_outputPath}\Output Log.txt", _outputLog.OrderBy(e => e));
                 _outputLog.Clear();
