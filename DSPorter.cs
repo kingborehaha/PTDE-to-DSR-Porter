@@ -203,6 +203,27 @@ namespace DSRPorter
             _outputLog.Add($@"Finished: map\mapstudio\*.msb");
         }
 
+        /// <summary>
+        /// Does some important things to bnds to make sure they work
+        /// </summary>
+        private void FinalizeBND(BND3 bnd)
+        {
+            List<int> IDs = new();
+            foreach (var file in bnd.Files)
+            {
+                if (IDs.Contains(file.ID))
+                {
+                    do
+                    {
+                        file.ID++;
+                    }
+                    while (IDs.Contains(file.ID));
+                }
+                IDs.Add(file.ID);
+            }
+            bnd.Files = bnd.Files.OrderBy(e => e.ID).ToList();
+        }
+
         private void DSRPorter_FFX()
         {
             var paths = Directory.GetFiles($@"{_dataPath_PTDE}\sfx", "*.ffxbnd");
@@ -215,15 +236,21 @@ namespace DSRPorter
 
                 foreach (var file_old in bnd_old.Files)
                 {
-                    if (FXR1.Is(file_old.Bytes) && IsNotCoreFFX(file_old))
+                    if (FXR1.Is(file_old.Bytes))
                     {
+                        if (IsCoreFFX(file_old))
+                        {
+                            // Core FFX, must use base DSR version or things will break.
+                            continue;
+                        }
+
                         FXR1 ffx_old = FXR1.Read(file_old.Bytes);
                         ffx_old.Wide = true;
                         file_old.Bytes = ffx_old.Write();
                     }
 
+                    file_old.Name = file_old.Name.Replace("win32", "x64");
                     var file_new = bnd_new.Files.Find(f => f.Name == file_old.Name);
-                    file_old.Name = file_old.Name.Replace("Effect_win32", "Effect_x64");
 
                     if (file_new != null)
                     {
@@ -231,9 +258,15 @@ namespace DSRPorter
                     }
                     else
                     {
+                        while (bnd_new.Files.Find(f => f.ID == file_old.ID) != null)
+                        {
+                            file_old.ID++;
+                        }
                         bnd_new.Files.Add(file_old);
                     }
                 }
+
+                bnd_new.Files = bnd_new.Files.OrderBy(e => e.ID).ToList();
                 Util.WritePortedSoulsFile(bnd_new, _dataPath_PTDE, path, _compressionType);
             }
             Debug.WriteLine("Finished: FFX");
@@ -298,11 +331,12 @@ namespace DSRPorter
                     }
                     switch (file_new.ID)
                     {
+                        /*
                         case (int)SoulsResources.FmgIDType.MenuKeyGuide:
                         case (int)SoulsResources.FmgIDType.MenuKeyGuide_Patch:
                             // Just use DSR entries.
-                            // Todo: is this still desired after adding TransferFMGEntries() ?
                             break;
+                        */
                         default:
                             TransferFmgEntries(file_old, file_new);
                             break;
@@ -511,7 +545,6 @@ namespace DSRPorter
                 }
                 else
                 {
-                    file_old.Name = file_old.Name.Replace("hkxwin32", "hkxx64");
                     file_old.Name = file_old.Name.Replace("win32", "x64");
                 }
 
@@ -534,6 +567,10 @@ namespace DSRPorter
             {
                 if (file_new.Name.ToLower().EndsWith(".hkx"))
                 {
+                    while (bnd_old.Files.Find(f => f.ID == file_new.ID) != null)
+                    {
+                        file_new.ID++;
+                    }
                     bnd_old.Files.Add(file_new);
                 }
             }
@@ -555,8 +592,8 @@ namespace DSRPorter
 
                 Util.WritePortedSoulsFile(bnd_old, _dataPath_PTDE, bndPath_old, _compressionType);
             }
-            Debug.WriteLine("Finished: ANIBNDs");
-            _outputLog.Add($@"Finished: chr\*.anibnd");
+            Debug.WriteLine("Finished: OBJBND");
+            _outputLog.Add($@"Finished: obj\*.objbnd");
         }
 
         private void DSRPorter_ESD()
@@ -720,8 +757,8 @@ namespace DSRPorter
             List<string> portedFiles = Directory.GetFiles(_outputPath, "*", SearchOption.AllDirectories).ToList();
             foreach (var ptdeFile in ptdeFiles)
             {
-                string ptdeFileName = Path.GetFileNameWithoutExtension(ptdeFile).Split('.')[0];
-                if (portedFiles.Find(l => Path.GetFileNameWithoutExtension(l).Split('.')[0] == ptdeFileName) == null)
+                string ptdeFileName = Path.GetFileName(ptdeFile).Replace(".dcx", "");
+                if (portedFiles.Find(l => Path.GetFileName(l).Replace(".dcx", "") == ptdeFileName) == null)
                 {
                     _outputLog.Add($"Unsupported file was not ported: \"{ptdeFile}\"");
                 }
@@ -739,29 +776,33 @@ namespace DSRPorter
 
                 if (true)
                 {
-                    taskList.Add(Task.Run(() => DSRPorter_FFX())); // Done, needs more in-game testing though.
-                    taskList.Add(Task.Run(() => DSRPorter_ESD())); // Done
-                    taskList.Add(Task.Run(() => DSRPorter_EMEVD())); // Done
-                    taskList.Add(Task.Run(() => DSRPorter_MSB())); //
-                    taskList.Add(Task.Run(() => DSRPorter_ANIBND())); // Done, may have per-enemy problems though.
-                    taskList.Add(Task.Run(() => DSRPorter_OBJBND())); // test
-                    taskList.Add(Task.Run(() => DSRPorter_MSGBND())); // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
-                    taskList.Add(Task.Run(() => DSRPorter_LUABND())); // Seems good? Needs more testing.
+                    if (false)
+                    {
+                        taskList.Add(Task.Run(() => DSRPorter_FFX())); // Done, needs more in-game testing though.
+                        taskList.Add(Task.Run(() => DSRPorter_ESD())); // Done
+                        taskList.Add(Task.Run(() => DSRPorter_EMEVD())); // Done
+                        taskList.Add(Task.Run(() => DSRPorter_MSB())); //
+                        taskList.Add(Task.Run(() => DSRPorter_ANIBND())); // Done, may have per-enemy problems though.
+                        taskList.Add(Task.Run(() => DSRPorter_OBJBND())); // test
+                        taskList.Add(Task.Run(() => DSRPorter_MSGBND())); // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
+                        taskList.Add(Task.Run(() => DSRPorter_LUABND())); // Seems good? Needs more testing.
 
-                    taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")));
-                    taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")));
-                    taskList.Add(Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true))); // TODO: make sure these actually work.
-                    //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"font", "*.tpf", true)));
-                    //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"menu", "*.tpf", true)));
-                }
-                Task.WaitAll(taskList.ToArray());
-                if (true)
-                {
-                    // Must run after MSB
-                    _paramdefs_ptde = Util.LoadParamDefXmls("DS1");
-                    _paramdefs_dsr = Util.LoadParamDefXmls("DS1R");
-                    DSRPorter_GameParam(); // Done
-                    DSRPorter_DrawParam(); // Done, may need more manual adjustments. Do in-game testing.
+                        taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")));
+                        taskList.Add(Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")));
+                        taskList.Add(Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true))); // TODO: make sure these actually work.
+                        //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"font", "*.tpf", true)));
+                        //taskList.Add(Task.Run(() => DSRPorter_GenericTPFs(@"menu", "*.tpf", true)));
+                    }
+                    taskList.Add(Task.Run(() => DSRPorter_FFX())); // Done, needs more in-game testing though.
+                    Task.WaitAll(taskList.ToArray());
+                    if (false)
+                    {
+                        // Must run after MSB
+                        _paramdefs_ptde = Util.LoadParamDefXmls("DS1");
+                        _paramdefs_dsr = Util.LoadParamDefXmls("DS1R");
+                        DSRPorter_GameParam(); // Done
+                        DSRPorter_DrawParam(); // Done, may need more manual adjustments. Do in-game testing.
+                    }
                 }
                 _outputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                 LogUnportedFiles();

@@ -110,14 +110,14 @@ namespace DSRPorter
             return scaledObj;
         }
 
-        private bool IsNotCoreFFX(BinderFile binder)
+        private bool IsCoreFFX(BinderFile binder)
         {
             // Some FFX are super important and cannot be changed without breaking the game.
             string fileName = Path.GetFileNameWithoutExtension(binder.Name);
             var id = long.Parse(string.Join("", fileName.Where(c => char.IsDigit(c))));
             if (id <= 2999 && id >= 2000)
-                return false;
-            return true;
+                return true;
+            return false;
         }
     }
 }
