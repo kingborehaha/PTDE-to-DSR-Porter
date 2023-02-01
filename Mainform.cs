@@ -62,12 +62,25 @@ namespace DSRPorter
 
         private void Button_Activate_Click(object sender, EventArgs e)
         {
-            ProgramProgressBar.Value = 0;
+            Task.Run(() => RunProgram());
+        }
+
+        private void RunProgram()
+        {
             string ptdePath = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\SOTE storage\Shadow of the Eclipse v2.0.0 DSR input\DATA";
             string dsrPath = @"Y:\Projects Y\Modding\DSR\DSR port input";
-            //Task.Run(() => _dsPorter.Run(ptdePath, dsrPath));
+
+            ProgramProgressBar.Value = 0;
+
+            Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = false));
+            
             _dsPorter.Run(ptdePath, dsrPath);
-            Button_Activate.Enabled = false;
+
+            Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = true));
+
+            GC.Collect();
+
+            MessageBox.Show("Finished!");
         }
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)
