@@ -17,7 +17,9 @@ namespace DSPorterUtil
         }
         public static string GetVirtualPath(string dataPath, string filePath)
         {
-            return Path.Join(filePath.Split(dataPath)[1].Split("\\")[..^1]);
+            var fileName = filePath.Split(dataPath)[1];
+            var virtualPath = fileName.Split("\\")[..^1];
+            return Path.Join(virtualPath);
         }
         public static string GetOutputPath(string dataPath, string filePath, bool isDCX = true)
         {
@@ -44,9 +46,10 @@ namespace DSPorterUtil
 
         public static bool HasModifiedScaling(Vector3 v1)
         {
-            return ScalingIsEqual(v1, new Vector3(1.0f, 1.0f, 1.0f));
+            return Vector3IsEqual(v1, new Vector3(1.0f, 1.0f, 1.0f));
         }
-        public static bool ScalingIsEqual(Vector3 v1, Vector3 v2)
+
+        public static bool Vector3IsEqual(Vector3 v1, Vector3 v2)
         {
             if (Vector3.Distance(v1, v2) > 0.001f)
             {
@@ -55,6 +58,14 @@ namespace DSPorterUtil
             return false;
         }
 
+        public static bool FloatIsEqual(float f1, float f2)
+        {
+            if (Math.Abs(f1 - f2) < 0.001f)
+            {
+                return true;
+            }
+            return false;
+        }
 
         public static ConcurrentBag<PARAMDEF> LoadParamDefXmls(string gameType)
         {

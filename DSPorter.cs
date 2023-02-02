@@ -28,6 +28,9 @@ using SoulsFormatsExtensions;
  * Scaled objects.
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
 
+ Self contained object textures
+    solution implemented, do some in-game testing
+
 //// SOTE stuff
  EXE
  * use tk's propertyhook
@@ -35,8 +38,6 @@ using SoulsFormatsExtensions;
  main menu
     texture
     intro video replacement
- Random textures?
-    Those lecturns in respite were missing textures. Texture issue, or cross-map loading issue? (see if duke's ones look right)
  FFX
  * There are some DSR FFX I don't want to replace, and some FFX I want the PTDE versions of.
     * Maybe do a diff between vanilla PTDE and SOTE to see which FFX I modified, and include those (sans crystal FFX)
@@ -47,6 +48,9 @@ using SoulsFormatsExtensions;
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit?
+ DrawParam
+ * Offset method KINDA works...
+ * With offset method, the lava seen in Tomb of the Giants is completely dark. figure that out (missing texture for the obj would be my guess?)
  chrBNDs
  * just titanite demon, right?
  * scaled objects
@@ -104,23 +108,25 @@ namespace DSRPorter
 {
     public partial class DSPorter
     {
-        private string _dataPath_PTDE = "";
-        private string _dataPath_DSR = "";
+        public string DataPath_PTDE_Mod = "";
+        public string DataPath_PTDE_Vanilla = "";
+        public string DataPath_DSR = "";
 
-        private readonly string _outputPath = Directory.GetCurrentDirectory() + "\\output";
-        private const DCX.Type _compressionType = DCX.Type.DCX_DFLT_10000_24_9;
+        public readonly string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
+        public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
         private ConcurrentBag<PARAMDEF> _paramdefs_ptde = new();
         private ConcurrentBag<PARAMDEF> _paramdefs_dsr = new();
         private List<ScaledObject> _scaledObjects = new();
+        private HashSet<string> _objsToPort = new();
 
-        private ConcurrentBag<string> _outputLog = new();
+        public ConcurrentBag<string> OutputLog = new();
 
         private readonly bool _enableScaledObjectAdjustments = false;
         private readonly bool _Is_SOTE = true;
 
         private readonly bool _useDSRToneMapBankValues = true;
-        public bool descaleMSBObjects = true;
+        public bool _descaleMSBObjects = true;
 
         private readonly ProgressBar _progressBar;
 
@@ -131,23 +137,22 @@ namespace DSRPorter
 
         private void DSRPorter_EMEVD()
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\event", "*.emevd");
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\event", "*.emevd");
             if (paths.Length == 0)
                 return;
             foreach (var path in paths)
             {
                 var emevd = EMEVD.Read(path);
-                Util.WritePortedSoulsFile(emevd, _dataPath_PTDE, path, _compressionType);
+                Util.WritePortedSoulsFile(emevd, DataPath_PTDE_Mod, path, CompressionType);
             }
             Debug.WriteLine("Finished: EMEVD");
-            _outputLog.Add($@"Finished: event\*.emevd");
+            OutputLog.Add($@"Finished: event\*.emevd");
         }
 
         private bool _MSBFinished = false;
         private void DSRPorter_MSB()
         {
-            _MSBFinished = false;
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\map\mapstudio", "*.msb");
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\map\mapstudio", "*.msb");
             if (paths.Length == 0)
                 return;
 
@@ -157,18 +162,27 @@ namespace DSRPorter
             {
                 string msbName = Path.GetFileNameWithoutExtension(path);
                 var msb = MSB1.Read(path);
+                MSB1 msb_vanilla = MSB1.Read(path.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla));
                 scalingExceptionDict.TryGetValue(msbName, out List<string>? exceptionList);
 
+                foreach (var model in msb.Models.Objects)
+                {
+                    if (msb_vanilla.Models.Objects.Find(e => e.Name == model.Name) == null)
+                    {
+                        _objsToPort.Add(model.Name);
+                    }
+                }
                 foreach (var p in msb.Parts.Objects)
                 {
                     if (exceptionList != null && exceptionList.Contains(p.Name))
                     { 
                     }
-                    else if (descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
+                    else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                     {
-                        _outputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
+                        OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
                         p.Scale = Vector3.One;
                     }
+
                     /*
                     if (_enableScaledObjectAdjustments && Util.HasModifiedScaling(p.Scale))
                     {
@@ -219,10 +233,10 @@ namespace DSRPorter
                         }
                     }
                 }
-                Util.WritePortedSoulsFile(msb, _dataPath_PTDE, path);
+                Util.WritePortedSoulsFile(msb, DataPath_PTDE_Mod, path);
             }
             Debug.WriteLine("Finished: MSB");
-            _outputLog.Add($@"Finished: map\mapstudio\*.msb");
+            OutputLog.Add($@"Finished: map\mapstudio\*.msb");
             _MSBFinished = true;
         }
 
@@ -249,14 +263,14 @@ namespace DSRPorter
 
         private void DSRPorter_FFX()
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\sfx", "*.ffxbnd");
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\sfx", "*.ffxbnd");
             if (paths.Length == 0)
                 return;
 
             foreach (var path in paths)
             {
                 var bnd_old = BND3.Read(path);
-                var bnd_new = BND3.Read(path.Replace(_dataPath_PTDE, _dataPath_DSR) + ".dcx");
+                var bnd_new = BND3.Read(path.Replace(DataPath_PTDE_Mod, DataPath_DSR) + ".dcx");
 
                 foreach (var file_old in bnd_old.Files)
                 {
@@ -291,10 +305,10 @@ namespace DSRPorter
                 }
 
                 bnd_new.Files = bnd_new.Files.OrderBy(e => e.ID).ToList();
-                Util.WritePortedSoulsFile(bnd_new, _dataPath_PTDE, path, _compressionType);
+                Util.WritePortedSoulsFile(bnd_new, DataPath_PTDE_Mod, path, CompressionType);
             }
             Debug.WriteLine("Finished: FFX");
-            _outputLog.Add($@"Finished: sfx\*.ffxbnd");
+            OutputLog.Add($@"Finished: sfx\*.ffxbnd");
         }
 
         private void TransferFmgEntries(BinderFile file_old, BinderFile file_new)
@@ -326,7 +340,7 @@ namespace DSRPorter
 
         private void DSRPorter_MSGBND()
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\msg", "*.msgbnd", SearchOption.AllDirectories);
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\msg", "*.msgbnd", SearchOption.AllDirectories);
             if (paths.Length == 0)
                 return;
 
@@ -337,11 +351,11 @@ namespace DSRPorter
             }
             foreach (var path in paths)
             {
-                string path_new = path.Replace(_dataPath_PTDE, _dataPath_DSR) + ".dcx";
+                string path_new = path.Replace(DataPath_PTDE_Mod, DataPath_DSR) + ".dcx";
                 if (!File.Exists(path_new))
                 {
                     MessageBox.Show($"{path} couldn't be found in DSR data.", "Warning");
-                    _outputLog.Add($"Skipped \"{path}\" since it couldn't be found in DSR data.");
+                    OutputLog.Add($"Skipped \"{path}\" since it couldn't be found in DSR data.");
                     continue;
                 }
 
@@ -366,10 +380,10 @@ namespace DSRPorter
                             break;
                     }
                 }
-                Util.WritePortedSoulsFile(bnd_new, _dataPath_PTDE, path, _compressionType);
+                Util.WritePortedSoulsFile(bnd_new, DataPath_PTDE_Mod, path, CompressionType);
             }
             Debug.WriteLine("Finished: MSGBND");
-            _outputLog.Add($@"Finished: msg\*.msgbnd");
+            OutputLog.Add($@"Finished: msg\*.msgbnd");
         }
 
         /*
@@ -428,30 +442,42 @@ namespace DSRPorter
             }
         }
 
+
+        private ConcurrentBag<string> _debugOutput = new();
         private void DSRPorter_TransferParams(string datapath, bool isDrawParam = false)
         {
             var paths = Directory.GetFiles(datapath, "*.parambnd");
             if (paths.Length == 0)
                 return;
 
-            while (!_MSBFinished || !_paramdefs_ptde.Any() || !_paramdefs_dsr.Any())
+            while (!_paramdefs_ptde.Any() || !_paramdefs_dsr.Any()) //|| !_MSBFinished
             {
                 Thread.Sleep(1000);
             }
 
             foreach (string bndPath_old in paths)
             {
-                string bndPath_new = bndPath_old.Replace(_dataPath_PTDE, $@"{_dataPath_DSR}") + ".dcx";
+                string bndPath_new = bndPath_old.Replace(DataPath_PTDE_Mod, $@"{DataPath_DSR}") + ".dcx";
+                string bndPath_vanilla = bndPath_old.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla);
 
                 ConcurrentDictionary<string, PARAM> paramList_old = new();
                 ConcurrentDictionary<string, PARAM> paramList_new = new();
+                ConcurrentDictionary<string, PARAM> paramList_vanilla = new();
 
                 // Load params
                 BND3 bnd_old = BND3.Read(bndPath_old);
                 BND3 bnd_new = BND3.Read(bndPath_new);
+                BND3 bnd_vanilla; 
+
 
                 Util.ApplyParamDefs(_paramdefs_ptde, bnd_old.Files, paramList_old);
                 Util.ApplyParamDefs(_paramdefs_dsr, bnd_new.Files, paramList_new);
+
+                if (isDrawParam)
+                {
+                    bnd_vanilla = BND3.Read(bndPath_vanilla);
+                    Util.ApplyParamDefs(_paramdefs_ptde, bnd_vanilla.Files, paramList_vanilla);
+                }
 
                 Parallel.ForEach(Partitioner.Create(paramList_old), item =>
                 {
@@ -478,6 +504,21 @@ namespace DSRPorter
                     PARAM param_new_target = paramList_new[item.Key];
                     List<PARAM.Row> paramRows_new = param_new_target.Rows.ToList();
 
+                    PARAM? param_vanilla = null;
+
+                    if (isDrawParam)
+                    {
+                        // Todo: handle newly added DrawParams properly
+                        try
+                        {
+                            param_vanilla = paramList_vanilla[item.Key];
+                        }
+                        catch
+                        { 
+                        
+                        }
+                    }
+
                     if (param_old.ParamType == "TONE_MAP_BANK")
                     {
                         if (_useDSRToneMapBankValues)
@@ -493,7 +534,6 @@ namespace DSRPorter
                     {
                         foreach (var scaledObj in _scaledObjects)
                         {
-                            // TODO: test
                             var OGRow = param_old[scaledObj.OGModelID];
                             PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
                             TransferParamRow(OGRow, newObjRow);
@@ -504,16 +544,71 @@ namespace DSRPorter
                     for (var iRow = 0; iRow < param_old.Rows.Count; iRow++)
                     {
                         PARAM.Row row_old = param_old.Rows[iRow];
-
                         PARAM.Row row_target = new(row_old.ID, row_old.Name, param_new_target.AppliedParamdef);
                         if (isDrawParam)
                         {
+                            // debug
+                            /*
                             PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_old.ID);
-                            //DEBUG_CompareDrawParamRows(item.Key, row_old, row_new);
-                            AdjustDrawParamRow(param_old, row_old, row_new);
+                            for (var iField = 0; iField < row_old.Cells.Count; iField++)
+                            {
+                                var oldCell = row_old.Cells[iField];
+                                var newCell = row_new.Cells[iField];
+
+                                if (oldCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
+                                {
+                                    // Skip over any padding.
+                                    continue;
+                                }
+
+                                if (oldCell.Def.InternalName != newCell.Def.InternalName)
+                                {
+                                    // Fields don't match, this is a mixed-def check. Try to find correct field to compare (if it exists)
+                                    newCell = row_new.Cells.FirstOrDefault(c => c.Def.InternalName == oldCell.Def.InternalName);
+                                    if (newCell == null)
+                                    {
+                                        throw new Exception($"Couldn't find {oldCell.Def.InternalName} in new paramdef. Modify Paramdef field names to fix.");
+                                    }
+                                }
+                                if (newCell.Value.ToString() != oldCell.Value.ToString())
+                                {
+                                    if (newCell.Value.GetType() == typeof(float))
+                                    {
+                                        if (Util.FloatIsEqual((float)oldCell.Value, (float)newCell.Value))
+                                            continue;
+                                        else
+                                        { }
+                                    }
+                                    _debugOutput.Add($"[{param_old.ParamType}] {oldCell.Def.InternalName}: {oldCell.Value} -> {newCell.Value}");
+                                }
+                            }
+                            //AdjustDrawParamRow(param_old, row_old, row_new);
+                            //TransferParamRow(row_old, row_target);
+                            */
+                            //
+
+                            if (param_vanilla == null)
+                                break;
+
+                            PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_old.ID);
+                            PARAM.Row? row_vanilla = param_vanilla.Rows.Find(r => r.ID == row_old.ID);
+
+                            if (row_new == null || row_vanilla == null)
+                            {
+                                TransferParamRow(row_old, row_target);
+                                param_new_target.Rows.Add(row_target);
+                            }
+                            else
+                            {
+                                OffsetParamRow(row_old, row_new, row_vanilla);
+                                param_new_target.Rows.Add(row_new);
+                            }
                         }
-                        TransferParamRow(row_old, row_target);
-                        param_new_target.Rows.Add(row_target);
+                        else
+                        {
+                            TransferParamRow(row_old, row_target);
+                            param_new_target.Rows.Add(row_target);
+                        }
                     }
                 });
                 // Save each param, then the parambnd
@@ -524,42 +619,44 @@ namespace DSRPorter
                         file.Bytes = paramList_new[name].Write();
                 }
 
-                Util.WritePortedSoulsFile(bnd_new, _dataPath_PTDE, bndPath_old, _compressionType);
+                //File.WriteAllLines("output\\debugOutput.txt", _debugOutput);
+
+                Util.WritePortedSoulsFile(bnd_new, DataPath_PTDE_Mod, bndPath_old, CompressionType);
             }
             return;
         }
 
         private void DSRPorter_DrawParam()
         {
-            string datapath = $@"{_dataPath_PTDE}\param\DrawParam";
+            string datapath = $@"{DataPath_PTDE_Mod}\param\DrawParam";
             DSRPorter_TransferParams(datapath, true);
             Debug.WriteLine("Finished: DrawParam");
-            _outputLog.Add($@"Finished: param\DrawParam\*.parambnd");
+            OutputLog.Add($@"Finished: param\DrawParam\*.parambnd");
         }
         private void DSRPorter_GameParam()
         {
-            string datapath = $@"{_dataPath_PTDE}\param\GameParam";
+            string datapath = $@"{DataPath_PTDE_Mod}\param\GameParam";
             DSRPorter_TransferParams(datapath, false);
             Debug.WriteLine("Finished: GameParam");
-            _outputLog.Add($@"Finished: param\GameParam\*.parambnd");
+            OutputLog.Add($@"Finished: param\GameParam\*.parambnd");
         }
 
         private void DSRPorter_ANIBND()
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\chr", "*.anibnd");
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\chr", "*.anibnd");
             if (paths.Length == 0)
                 return;
             foreach (var bndPath_old in paths)
             {
-                string bndPath_new = bndPath_old.Replace(_dataPath_PTDE, $@"{_dataPath_DSR}") + ".dcx";
+                string bndPath_new = bndPath_old.Replace(DataPath_PTDE_Mod, $@"{DataPath_DSR}") + ".dcx";
                 var bnd_old = BND3.Read(bndPath_old);
                 var bnd_new = BND3.Read(bndPath_new);
                 ModifyEntityBND(bnd_old, bnd_new);
 
-                Util.WritePortedSoulsFile(bnd_old, _dataPath_PTDE, bndPath_old, _compressionType);
+                Util.WritePortedSoulsFile(bnd_old, DataPath_PTDE_Mod, bndPath_old, CompressionType);
             }
             Debug.WriteLine("Finished: ANIBNDs");
-            _outputLog.Add($@"Finished: chr\*.anibnd");
+            OutputLog.Add($@"Finished: chr\*.anibnd");
         }
 
         /// <summary>
@@ -584,7 +681,7 @@ namespace DSRPorter
                     if (file_new == null)
                     {
                         //MessageBox.Show($"{file_old.Name} can't be found in DSR data and will be skipped. This file must be ported manually.", "Warning");
-                        _outputLog.Add($"Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
+                        OutputLog.Add($"Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
                         continue;
                     }
                     var modifiedBND = BND3.Read(file_old.Bytes);
@@ -610,25 +707,25 @@ namespace DSRPorter
 
         private void DSRPorter_OBJBND()
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\obj", "*.objbnd");
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\obj", "*.objbnd");
             if (paths.Length == 0)
                 return;
             foreach (var bndPath_old in paths)
             {
-                string bndPath_new = bndPath_old.Replace(_dataPath_PTDE, $@"{_dataPath_DSR}") + ".dcx";
+                string bndPath_new = bndPath_old.Replace(DataPath_PTDE_Mod, $@"{DataPath_DSR}") + ".dcx";
                 var bnd_old = BND3.Read(bndPath_old);
                 var bnd_new = BND3.Read(bndPath_new);
                 ModifyEntityBND(bnd_old, bnd_new);
 
-                Util.WritePortedSoulsFile(bnd_old, _dataPath_PTDE, bndPath_old, _compressionType);
+                Util.WritePortedSoulsFile(bnd_old, DataPath_PTDE_Mod, bndPath_old, CompressionType);
             }
             Debug.WriteLine("Finished: OBJBND");
-            _outputLog.Add($@"Finished: obj\*.objbnd");
+            OutputLog.Add($@"Finished: obj\*.objbnd");
         }
 
         private void DSRPorter_ESD()
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\script\talk", "*.talkesdbnd");
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\script\talk", "*.talkesdbnd");
             if (paths.Length == 0)
                 return;
             foreach (var path in paths)
@@ -641,37 +738,37 @@ namespace DSRPorter
                     esd.LongFormat = true;
                     file.Bytes = esd.Write();
                 }
-                Util.WritePortedSoulsFile(bnd, _dataPath_PTDE, path, _compressionType);
+                Util.WritePortedSoulsFile(bnd, DataPath_PTDE_Mod, path, CompressionType);
             }
-            _outputLog.Add($@"Finished: script\talk\*.esd");
+            OutputLog.Add($@"Finished: script\talk\*.esd");
 
-            foreach (var path in Directory.GetFiles($@"{_dataPath_PTDE}\chr", "*.esd"))
+            foreach (var path in Directory.GetFiles($@"{DataPath_PTDE_Mod}\chr", "*.esd"))
             {
                 var esd = ESD.Read(path);
                 esd.LongFormat = true;
-                Util.WritePortedSoulsFile(esd, _dataPath_PTDE, path, _compressionType);
+                Util.WritePortedSoulsFile(esd, DataPath_PTDE_Mod, path, CompressionType);
             }
             Debug.WriteLine("Finished: ESDs");
-            _outputLog.Add($@"Finished: chr\*.esd");
+            OutputLog.Add($@"Finished: chr\*.esd");
         }
 
         private void DSRPorter_GenericFiles(string directory, string searchPattern)
         {
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\{directory}", searchPattern);
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\{directory}", searchPattern);
             if (paths.Length == 0)
                 return;
             foreach (var path in paths)
             {
-                File.Copy(path, Util.GetOutputPath(_dataPath_PTDE, path, false), true);
+                File.Copy(path, Util.GetOutputPath(DataPath_PTDE_Mod, path, false), true);
             }
             Debug.WriteLine("Finished: Generic Files");
-            _outputLog.Add($@"Finished: {directory}\{searchPattern}"); ;
+            OutputLog.Add($@"Finished: {directory}\{searchPattern}"); ;
         }   
 
         private void DSRPorter_GenericBNDs(string directory, string searchPattern, bool compress, bool searchInnerFolders = false)
         {
             SearchOption searchOption = searchInnerFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            var paths = Directory.GetFiles($@"{_dataPath_PTDE}\{directory}", searchPattern, searchOption);
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\{directory}", searchPattern, searchOption);
             if (paths.Length == 0)
                 return;
 
@@ -684,25 +781,25 @@ namespace DSRPorter
                 }
                 if (compress)
                 {
-                    Util.WritePortedSoulsFile(bnd, _dataPath_PTDE, path, _compressionType);
+                    Util.WritePortedSoulsFile(bnd, DataPath_PTDE_Mod, path, CompressionType);
                 }
                 else
                 {
-                    Util.WritePortedSoulsFile(bnd, _dataPath_PTDE, path);
+                    Util.WritePortedSoulsFile(bnd, DataPath_PTDE_Mod, path);
                 }
             }
             Debug.WriteLine("Finished: Generic BNDs");
-            _outputLog.Add($@"Finished: {directory}\{searchPattern}");
+            OutputLog.Add($@"Finished: {directory}\{searchPattern}");
         }
 
         private void DSRPorter_LUABND()
         {
-            var files_old = Directory.GetFiles($@"{_dataPath_PTDE}\script", "*.luabnd");
+            var files_old = Directory.GetFiles($@"{DataPath_PTDE_Mod}\script", "*.luabnd");
             if (files_old.Length == 0)
                 return;
 
             List<BinderFile> files_new = new();
-            foreach (var file in Directory.GetFiles($@"{_dataPath_DSR}\script", "*.luabnd.dcx"))
+            foreach (var file in Directory.GetFiles($@"{DataPath_DSR}\script", "*.luabnd.dcx"))
             {
                 files_new.AddRange(BND3.Read(file).Files);
             }
@@ -748,11 +845,11 @@ namespace DSRPorter
                     }
                 }
 
-                Util.WritePortedSoulsFile(bnd_old, _dataPath_PTDE, bndPath_old, _compressionType);
+                Util.WritePortedSoulsFile(bnd_old, DataPath_PTDE_Mod, bndPath_old, CompressionType);
             }
 
             Debug.WriteLine("Finished: LUABND");
-            _outputLog.Add($@"Finished: script\*.luabnd");
+            OutputLog.Add($@"Finished: script\*.luabnd");
         } 
 
         private void DSRPorter_GenericTPFs(string directory, string searchPattern, bool compress)
@@ -783,27 +880,47 @@ namespace DSRPorter
 
         public void LogUnportedFiles()
         {
-            List<string> ptdeFiles = Directory.GetFiles(_dataPath_PTDE, "*", SearchOption.AllDirectories).ToList();
-            List<string> portedFiles = Directory.GetFiles(_outputPath, "*", SearchOption.AllDirectories).ToList();
+            List<string> ptdeFiles = Directory.GetFiles(DataPath_PTDE_Mod, "*", SearchOption.AllDirectories).ToList();
+            List<string> portedFiles = Directory.GetFiles(DataPath_Output, "*", SearchOption.AllDirectories).ToList();
             foreach (var ptdeFile in ptdeFiles)
             {
                 string ptdeFileName = Path.GetFileName(ptdeFile).Replace(".dcx", "");
                 if (portedFiles.Find(l => Path.GetFileName(l).Replace(".dcx", "") == ptdeFileName) == null)
                 {
-                    _outputLog.Add($"Unsupported file was not ported: \"{ptdeFile.Replace($@"{_dataPath_PTDE}\", "")}\"");
+                    OutputLog.Add($"Unsupported file was not ported: \"{ptdeFile.Replace($@"{DataPath_PTDE_Mod}\", "")}\"");
                 }
             }
         }
 
-        public void Run(string ptdePath, string dsrPath)
+        public void DSRPorter_ObjTextures()
         {
-            Directory.CreateDirectory(_outputPath);
-            _dataPath_PTDE = ptdePath;
-            _dataPath_DSR = dsrPath;
+            while (!_MSBFinished)
+            {
+                Thread.Sleep(1000);
+            }
+
+            TexturePorter texPorter = new(this);
+
+            _progressBar.Invoke(new Action(() => _progressBar.Maximum += _objsToPort.Count*2));
+            foreach (var obj in _objsToPort)
+            {
+                texPorter.ModifyObjbnd(obj);
+                OutputLog.Add($@"Added self-containing textures: {obj}");
+                _progressBar.Invoke(new Action(() => _progressBar.Increment(2)));
+            }
+        }
+
+        public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
+        {
+            Directory.CreateDirectory(DataPath_Output);
+            DataPath_PTDE_Vanilla = ptdePath_Vanilla;
+            DataPath_PTDE_Mod = ptdePath_Mod;
+            DataPath_DSR = dsrPath;
 
             List<Task> taskList = new()
             {
                 Task.Run(() => DSRPorter_MSB()), // Done, needs more in-game testing though.
+                
                 Task.Run(() => DSRPorter_FFX()), // Done, needs more in-game testing though.
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
@@ -815,11 +932,14 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // TODO: make sure these actually work.
-
+                
+                
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
                 Task.Run(() => DSRPorter_DrawParam()) // Done, may need more manual adjustments. Do in-game testing.
+                
+                Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
@@ -836,10 +956,10 @@ namespace DSRPorter
                 }
             }
             
-            _outputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
+            OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             LogUnportedFiles();
 
-            File.WriteAllLines($@"{_outputPath}\Output Log.txt", _outputLog.OrderBy(e => e));
+            File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
         }
     }
 }

@@ -38,6 +38,40 @@ namespace DSRPorter
             }
             return;
         }
+        private void OffsetParamRow(PARAM.Row row_old, PARAM.Row row_new, PARAM.Row row_vanilla)
+        {
+            for (var iField = 0; iField < row_old.Cells.Count; iField++)
+            {
+                var oldCell = row_old.Cells[iField];
+                var newCell = row_new.Cells[iField];
+                var vanillaCell = row_vanilla.Cells[iField];
+
+                if (oldCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
+                {
+                    // Skip over any padding.
+                    continue;
+                }
+
+                if (oldCell.Def.InternalName != newCell.Def.InternalName)
+                {
+                    // Fields don't match, this is a mixed-def check. Try to find correct field to compare (if it exists)
+                    newCell = row_new.Cells.FirstOrDefault(c => c.Def.InternalName == oldCell.Def.InternalName);
+                    if (newCell == null)
+                    {
+                        throw new Exception($"Couldn't find {oldCell.Def.InternalName} in new paramdef. Modify Paramdef field names to fix.");
+                    }
+                }
+                dynamic offsetVal = (dynamic)oldCell.Value - (dynamic)vanillaCell.Value;
+
+                /*
+                if (offsetVal != 0)
+                    Debugger.Break();
+                */
+
+                newCell.Value = (dynamic)newCell.Value + offsetVal;
+            }
+            return;
+        }
 
         public void ChangeBNDFileNames(BND3 bnd, string oldStr, string newStr)
         {
@@ -73,7 +107,7 @@ namespace DSRPorter
             {
                 if (OGModelName != modelName)
                     return false;
-                if (!Util.ScalingIsEqual(Scaling, scaling))
+                if (!Util.Vector3IsEqual(Scaling, scaling))
                     return false;
                 return true;
             }
@@ -83,7 +117,7 @@ namespace DSRPorter
         {
             ScaledObject scaledObj = new(modelName, scale);
 
-            string[] objbndPaths = Directory.GetFiles($@"{_dataPath_DSR}\obj", "*.objbnd.dcx");
+            string[] objbndPaths = Directory.GetFiles($@"{DataPath_DSR}\obj", "*.objbnd.dcx");
 
             string newObjName;
             int id = scaledObj.OGModelID;
@@ -92,17 +126,17 @@ namespace DSRPorter
                 id++;
                 newObjName = $"o{id}";
             }
-            while (objbndPaths.Contains($@"{_dataPath_DSR}\obj\{newObjName}.objbnd.dcx"));
+            while (objbndPaths.Contains($@"{DataPath_DSR}\obj\{newObjName}.objbnd.dcx"));
 
             scaledObj.NewModelName = newObjName;
 
-            var oldpath = $@"{_dataPath_DSR}\obj\{scaledObj.OGModelName}.objbnd.dcx";
-            var newpath = $@"{_dataPath_DSR}\obj\{scaledObj.NewModelName}.objbnd.dcx";
+            var oldpath = $@"{DataPath_DSR}\obj\{scaledObj.OGModelName}.objbnd.dcx";
+            var newpath = $@"{DataPath_DSR}\obj\{scaledObj.NewModelName}.objbnd.dcx";
             BND3 oldBND = BND3.Read(oldpath);
 
             ChangeBNDFileNames(oldBND, scaledObj.OGModelName, scaledObj.NewModelName);
 
-            Util.WritePortedSoulsFile(oldBND, _dataPath_DSR, newpath, _compressionType);
+            Util.WritePortedSoulsFile(oldBND, DataPath_DSR, newpath, CompressionType);
 
             // TODO: HKX stuff
             // Also need to create an objParam entry
