@@ -1,0 +1,17 @@
+// This file defines which MSB objects with non-standard scaling to not revert during the porting process.
+// DS1 has scaled objects by default, and these objects have no collision.
+// In PTDE, if a mod introduces a scaled object it will behave as you expect.
+// In DSR, if a mod introduces a scaled object it will have no collision.
+// This tool will revert object scaling to default values, unless they defined are in this list.
+
+// Goo on the walls in Depths
+m10_00_00_00||o1057_01
+m10_00_00_00||o1057_04
+m10_00_00_00||o1057_08
+m10_00_00_00||o1057_12
+m10_00_00_00||o1057_16
+m10_00_00_00||o1057_17
+m10_00_00_00||o1057_20
+m10_00_00_00||o1057_22
+// Snuggly's Nest
+m18_01_00_00||o8550_0001

@@ -21,7 +21,7 @@ namespace DSPorterUtil
         }
         public static string GetOutputPath(string dataPath, string filePath, bool isDCX = true)
         {
-            string outputDirectory = $"output\\{GetVirtualPath(dataPath, filePath)}";
+            string outputDirectory = $"{Directory.GetCurrentDirectory()}\\output\\{GetVirtualPath(dataPath, filePath)}";
             string fileName = Path.GetFileName(filePath);
             string outputPath = $"{outputDirectory}\\{fileName}";
             Directory.CreateDirectory(outputDirectory);

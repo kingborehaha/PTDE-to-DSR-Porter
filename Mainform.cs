@@ -10,13 +10,11 @@ namespace DSRPorter
     {
         public static readonly string Version = Application.ProductVersion;
         public static readonly string ProgramTitle = $"PTDE to DSR porter";
-        public DSPorter _dsPorter;
 
         public MainForm()
         {
             InitializeComponent();
             this.Text = ProgramTitle;
-            _dsPorter = new(ProgramProgressBar);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -72,11 +70,12 @@ namespace DSRPorter
             string dsrPath = @"Y:\Projects Y\Modding\DSR\DSR port input";
 
             Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = false));
-            
-            _dsPorter.Run(ptdePath, dsrPath);
+
+            DSPorter porter = new(ProgramProgressBar);
+            porter.Run(ptdePath, dsrPath);
 
             Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = true));
-
+            
             GC.Collect();
 
             MessageBox.Show("Finished!");

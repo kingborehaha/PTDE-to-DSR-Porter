@@ -1,6 +1,6 @@
 # PTDE to DSR Porter
-
 Tool for porting PTDE mods to DSR
+
 Built to support the following files:
 * FFX
 * ESD (talk/chr)

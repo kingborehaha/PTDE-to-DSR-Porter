@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <FileVersion>0.9.0</FileVersion>
+    <AssemblyVersion>0.9.0</AssemblyVersion>
+    <Version>0.9.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +35,12 @@
   <ItemGroup>
     <None Update="Paramdex\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Resources\MSB_Scaled_Obj_Exceptions.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

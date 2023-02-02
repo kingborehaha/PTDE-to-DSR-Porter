@@ -25,9 +25,8 @@ using SoulsFormatsExtensions;
 
  msb
  * option to keep DSR drawgroup improvements?
- * Scaled objects. Need to make new objects and scale down their collision to whatever scale I need.
- * * or, go through list and pray there are acceptable alternatives for every single one (yikes. especially for fog wall blockers)
-
+ * Scaled objects.
+    * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
 
 //// SOTE stuff
  EXE
@@ -45,6 +44,7 @@ using SoulsFormatsExtensions;
  OBJ
  * see what changes i made to these objects in devlogs. root seal is especially concerning, dont remember which new file i made for that (TAE?)
     * re: root seals. i think i scaled all of these, so changes would need to be made to scaled dupes
+    * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit?
  chrBNDs
@@ -92,7 +92,7 @@ using SoulsFormatsExtensions;
         m10_00_00_00 - o1057 | o1057_17 - <0.8, 0.8, 0.8>
         m10_00_00_00 - o1057 | o1057_20 - <0.7999998, 0.8, 0.7999998>
         m10_00_00_00 - o1057 | o1057_22 - <2, 0.8, 0.5>
-        // i don't remember
+        // snuggly's nest
         m18_01_00_00 - o8550 | o8550_0001 - <0.458642, 0.458642, 0.458642>
         // SOTE
        m10_01_00_00 - o1317 | o1317_0001 - <1.05, 1, 1>
@@ -107,7 +107,7 @@ namespace DSRPorter
         private string _dataPath_PTDE = "";
         private string _dataPath_DSR = "";
 
-        private const string _outputPath = "output";
+        private readonly string _outputPath = Directory.GetCurrentDirectory() + "\\output";
         private const DCX.Type _compressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
         private ConcurrentBag<PARAMDEF> _paramdefs_ptde = new();
@@ -120,6 +120,7 @@ namespace DSRPorter
         private readonly bool _Is_SOTE = true;
 
         private readonly bool _useDSRToneMapBankValues = true;
+        public bool descaleMSBObjects = true;
 
         private readonly ProgressBar _progressBar;
 
@@ -150,14 +151,25 @@ namespace DSRPorter
             if (paths.Length == 0)
                 return;
 
-            _scaledObjects.Clear();
+            Dictionary<string, List<string>> scalingExceptionDict = LoadResource_MSBExceptions();
+
             foreach (var path in paths)
             {
                 string msbName = Path.GetFileNameWithoutExtension(path);
                 var msb = MSB1.Read(path);
+                scalingExceptionDict.TryGetValue(msbName, out List<string>? exceptionList);
 
                 foreach (var p in msb.Parts.Objects)
                 {
+                    if (exceptionList != null && exceptionList.Contains(p.Name))
+                    { 
+                    }
+                    else if (descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
+                    {
+                        _outputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
+                        p.Scale = Vector3.One;
+                    }
+                    /*
                     if (_enableScaledObjectAdjustments && Util.HasModifiedScaling(p.Scale))
                     {
                         string? newModelName = null;
@@ -187,6 +199,7 @@ namespace DSRPorter
                             msb.Models.Objects.Add(model);
                         }
                     }
+                    */
                 }
                 foreach (var p in msb.Parts.Collisions)
                 {
@@ -777,13 +790,9 @@ namespace DSRPorter
                 string ptdeFileName = Path.GetFileName(ptdeFile).Replace(".dcx", "");
                 if (portedFiles.Find(l => Path.GetFileName(l).Replace(".dcx", "") == ptdeFileName) == null)
                 {
-                    _outputLog.Add($"Unsupported file was not ported: \"{ptdeFile}\"");
+                    _outputLog.Add($"Unsupported file was not ported: \"{ptdeFile.Replace($@"{_dataPath_PTDE}\", "")}\"");
                 }
             }
-        }
-        public void IncrementTaskBar(int i)
-        {
-            _progressBar.Increment(i);
         }
 
         public void Run(string ptdePath, string dsrPath)
@@ -831,9 +840,6 @@ namespace DSRPorter
             LogUnportedFiles();
 
             File.WriteAllLines($@"{_outputPath}\Output Log.txt", _outputLog.OrderBy(e => e));
-            _outputLog.Clear();
-            _paramdefs_ptde.Clear();
-            _paramdefs_dsr.Clear();
         }
     }
 }

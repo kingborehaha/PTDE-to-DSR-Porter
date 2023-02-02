@@ -119,5 +119,31 @@ namespace DSRPorter
                 return true;
             return false;
         }
+
+        public Dictionary<string, List<string>> LoadResource_MSBExceptions()
+        {
+            string[] file = File.ReadAllLines($@"{Directory.GetCurrentDirectory()}\Resources\MSB_Scaled_Obj_Exceptions.txt");
+            Dictionary<string, List<string>> output = new();
+            foreach (var line in file)
+            {
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("//"))
+                    continue;
+                string map = "";
+                string name = "";
+                try
+                {
+                    var split = line.Split("||");
+                    map = split[0];
+                    name = split[1];
+                }
+                catch
+                {
+                    throw new Exception($"\"Resources\\MSB Exceptions.txt\" has invalid formatting and cannot be used.");
+                }
+                output.TryAdd(map, new List<string>());
+                output[map].Add(name);
+            }
+            return output;
+        }
     }
 }
