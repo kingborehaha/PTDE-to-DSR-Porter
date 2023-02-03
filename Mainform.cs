@@ -9,7 +9,7 @@ namespace DSRPorter
     public partial class MainForm : Form
     {
         public static readonly string Version = Application.ProductVersion;
-        public static readonly string ProgramTitle = $"PTDE to DSR porter";
+        public static readonly string ProgramTitle = $"PTDE to DSR porter v{Version}";
 
         public MainForm()
         {
@@ -20,11 +20,6 @@ namespace DSRPorter
         {
             CheckEnableActivateButton();
             this.Text = ProgramTitle;
-        }
-
-        public void UpdateConsole(string text)
-        {
-            Application.DoEvents();
         }
 
         private void CheckEnableActivateButton()
@@ -44,12 +39,12 @@ namespace DSRPorter
 
         private void RunProgram()
         {
-            Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = false));
+            Button_Activate.Invoke(() => Button_Activate.Enabled = false);
 
             DSPorter porter = new(ProgramProgressBar);
             porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
 
-            Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = true));
+            Button_Activate.Invoke(() => Button_Activate.Enabled = true);
             
             GC.Collect();
 
@@ -58,29 +53,6 @@ namespace DSRPorter
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)
         {
-            if (cb_log_field_specifics.Checked)
-                cb_fields_share_row.Enabled = true;
-            else
-                cb_fields_share_row.Enabled = false;
-        }
-
-        private void toggle_buttons_logNames()
-        {
-        }
-
-        private void cb_log_name_changes_only_CheckedChanged(object sender, EventArgs e)
-        {
-            toggle_buttons_logNames();
-        }
-
-        private void cb_LogRowNames_CheckedChanged(object sender, EventArgs e)
-        {
-            toggle_buttons_logNames();
-        }
-
-        private void combo_logNameExclusive_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            toggle_buttons_logNames();
         }
 
         private void Button_Browse_PTDE_Mod_Click(object sender, EventArgs e)

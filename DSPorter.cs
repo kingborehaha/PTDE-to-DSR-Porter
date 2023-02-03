@@ -669,6 +669,7 @@ namespace DSRPorter
                 if (file_old.Name.ToLower().EndsWith(".hkx"))
                 {
                     bnd_old.Files.Remove(file_old);
+                    continue;
                 }
                 else
                 {
@@ -901,18 +902,30 @@ namespace DSRPorter
 
             TexturePorter texPorter = new(this);
 
-            int progressMagnitude = 2;
-            _progressBar.Invoke(new Action(() => _progressBar.Maximum += _objsToPort.Count * progressMagnitude));
             foreach (var obj in _objsToPort)
             {
                 texPorter.SelfContainTextures_Objbnd(obj);
                 OutputLog.Add($@"Added self-containing textures: {obj}");
-                _progressBar.Invoke(new Action(() => _progressBar.Increment(progressMagnitude)));
+                _progressBar.Invoke(() => _progressBar.Increment(1 + 300 / _objsToPort.Count));
             }
         }
 
         public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
         {
+            if (Directory.Exists(DataPath_Output))
+            {
+                var result = MessageBox.Show("Output folder already exists. Delete output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNoCancel);
+                if (result == DialogResult.Cancel)
+                {
+                    return;
+                }
+                if (result == DialogResult.Yes)
+                {
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                        Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                }
+            }
             Directory.CreateDirectory(DataPath_Output);
             DataPath_PTDE_Vanilla = ptdePath_Vanilla;
             DataPath_PTDE_Mod = ptdePath_Mod;
@@ -934,7 +947,6 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // TODO: make sure these actually work.
                 
-                
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
@@ -951,7 +963,7 @@ namespace DSRPorter
                 {
                     if (task.IsCompleted)
                     {
-                        _progressBar.Invoke(new Action(() => _progressBar.Increment(1 + (100 / taskCount))));
+                        _progressBar.Invoke(() => _progressBar.Increment(1 + 700 / taskCount));
                         taskList.Remove(task);
                     }
                 }
@@ -961,6 +973,8 @@ namespace DSRPorter
             LogUnportedFiles();
 
             File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
+
+            _progressBar.Invoke(() => _progressBar.Value = _progressBar.Maximum);
         }
     }
 }
