@@ -14,36 +14,12 @@ namespace DSRPorter
         public MainForm()
         {
             InitializeComponent();
-            this.Text = ProgramTitle;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            if (cb_log_field_specifics.Checked)
-                cb_fields_share_row.Enabled = true;
-            else
-                cb_fields_share_row.Enabled = false;
-        }
-
-        private void LoadFile(FileDialog fileDialog)
-        {
-            if (fileDialog.ShowDialog() == DialogResult.OK)
-            {
-                CheckEnableActivateButton();
-            }
-        }
-        private void Button_PTDE_Browse(object sender, EventArgs e)
-        {
-            LoadFile(openFileDialog_old);
-            Text_Loaded_PTDE.Text = "Loaded";
-            UpdateConsole("Old param selected");
-        }
-
-        private void Button_DSR_Browse(object sender, EventArgs e)
-        {
-            LoadFile(openFileDialog_new);
-            Text_Loaded_DSR.Text = "Loaded";
-            UpdateConsole("New param selected");
+            CheckEnableActivateButton();
+            this.Text = ProgramTitle;
         }
 
         public void UpdateConsole(string text)
@@ -53,8 +29,10 @@ namespace DSRPorter
 
         private void CheckEnableActivateButton()
         {
-            if (openFileDialog_old.FileName != "" && openFileDialog_new.FileName != "")
+            if (FolderBrowser_PTDE_Mod.SelectedPath != "" && FolderBrowser_PTDE_Vanilla.SelectedPath != "" && FolderBrowser_DSR.SelectedPath != "")
                 Button_Activate.Enabled = true;
+            else
+                Button_Activate.Enabled = false;
             return;
         }
 
@@ -66,14 +44,10 @@ namespace DSRPorter
 
         private void RunProgram()
         {
-            string ptdePath_Vanilla = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA vanilla packed";
-            string ptdePath = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\SOTE storage\Shadow of the Eclipse v2.0.0 DSR input\DATA";
-            string dsrPath = @"Y:\Projects Y\Modding\DSR\DSR port input";
-
             Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = false));
 
             DSPorter porter = new(ProgramProgressBar);
-            porter.Run(ptdePath, dsrPath, ptdePath_Vanilla);
+            porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
 
             Button_Activate.Invoke(new Action(() => Button_Activate.Enabled = true));
             
@@ -94,11 +68,6 @@ namespace DSRPorter
         {
         }
 
-        private void openFileDialog_old_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            UpdateConsole("Reading Params");
-        }
-
         private void cb_log_name_changes_only_CheckedChanged(object sender, EventArgs e)
         {
             toggle_buttons_logNames();
@@ -114,37 +83,33 @@ namespace DSRPorter
             toggle_buttons_logNames();
         }
 
-        private void t_VersionOld_DragDrop(object sender, DragEventArgs e)
+        private void Button_Browse_PTDE_Mod_Click(object sender, EventArgs e)
         {
-            string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            openFileDialog_old.FileName = files[0];
-            Text_Loaded_PTDE.Text = "Loaded";
+            FolderBrowser_PTDE_Mod.ShowDialog();
             CheckEnableActivateButton();
-        }
-        private void t_VersionNew_DragDrop(object sender, DragEventArgs e)
-        {
-            string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            openFileDialog_new.FileName = files[0];
-            Text_Loaded_DSR.Text = "Loaded";
-            CheckEnableActivateButton();
-        }
-        private void t_VersionOld_DragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-                e.Effect = DragDropEffects.Link;
-            else
-                e.Effect = DragDropEffects.None;
-        }
-        private void t_VersionNew_DragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-                e.Effect = DragDropEffects.Link;
-            else
-                e.Effect = DragDropEffects.None;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Button_Browse_DSR_Click(object sender, EventArgs e)
         {
+            FolderBrowser_DSR.ShowDialog();
+            CheckEnableActivateButton();
+        }
+
+        private void Button_Browse_PTDE_Vanilla_Click(object sender, EventArgs e)
+        {
+            FolderBrowser_PTDE_Vanilla.ShowDialog();
+            CheckEnableActivateButton();
+        }
+
+        private void debug_button_Click(object sender, EventArgs e)
+        {
+            string ptdePath_Vanilla = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA vanilla packed";
+            string ptdePath = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\SOTE storage\Shadow of the Eclipse v2.0.0 DSR input\DATA";
+            string dsrPath = @"Y:\Projects Y\Modding\DSR\DSR port input";
+            FolderBrowser_PTDE_Vanilla.SelectedPath = ptdePath_Vanilla;
+            FolderBrowser_PTDE_Mod.SelectedPath = ptdePath;
+            FolderBrowser_DSR.SelectedPath = dsrPath;
+            CheckEnableActivateButton();
         }
     }
 }

@@ -901,12 +901,13 @@ namespace DSRPorter
 
             TexturePorter texPorter = new(this);
 
-            _progressBar.Invoke(new Action(() => _progressBar.Maximum += _objsToPort.Count*2));
+            int progressMagnitude = 2;
+            _progressBar.Invoke(new Action(() => _progressBar.Maximum += _objsToPort.Count * progressMagnitude));
             foreach (var obj in _objsToPort)
             {
-                texPorter.ModifyObjbnd(obj);
+                texPorter.SelfContainTextures_Objbnd(obj);
                 OutputLog.Add($@"Added self-containing textures: {obj}");
-                _progressBar.Invoke(new Action(() => _progressBar.Increment(2)));
+                _progressBar.Invoke(new Action(() => _progressBar.Increment(progressMagnitude)));
             }
         }
 
@@ -925,7 +926,7 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_ANIBND()), // Done, may have per-enemy problems though.
-                Task.Run(() => DSRPorter_OBJBND()), // test
+                Task.Run(() => DSRPorter_OBJBND()), // Done except for scaling stuff.
                 Task.Run(() => DSRPorter_MSGBND()), // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
                 Task.Run(() => DSRPorter_LUABND()), // Seems good? Needs more testing.
 
@@ -937,7 +938,7 @@ namespace DSRPorter
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
-                Task.Run(() => DSRPorter_DrawParam()) // Done, may need more manual adjustments. Do in-game testing.
+                Task.Run(() => DSRPorter_DrawParam()), // Done, may need more manual adjustments. Do in-game testing.
                 
                 Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
             };

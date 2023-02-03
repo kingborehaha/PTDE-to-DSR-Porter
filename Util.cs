@@ -11,9 +11,10 @@ namespace DSPorterUtil
 {
     public static class Util
     {
-        public static void WritePortedSoulsFile(ISoulsFile file, string datapath, string path, DCX.Type dcxType = DCX.Type.None)
+        public static void WritePortedSoulsFile(ISoulsFile file, string dataPath, string filePath, DCX.Type dcxType = DCX.Type.None)
         {
-            file.Write(Util.GetOutputPath(datapath, path, dcxType != DCX.Type.None), dcxType);
+            string writePath = GetOutputPath(dataPath, filePath, dcxType != DCX.Type.None);
+            file.Write(writePath, dcxType);
         }
         public static string GetVirtualPath(string dataPath, string filePath)
         {

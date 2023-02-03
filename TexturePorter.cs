@@ -130,7 +130,7 @@ namespace DSRPorter
             }
         }
 
-        public void ModifyObjbnd(string modelName)
+        public void SelfContainTextures_Objbnd(string modelName)
         {
             string bndPath = $@"{_porter.DataPath_Output}\obj\{modelName}.objbnd.dcx";
             string dataPath = _porter.DataPath_Output;

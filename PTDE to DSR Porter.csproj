@@ -28,6 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Mainform.resx~RF4fe4dfab.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="SoulsFormatsExtensions\SoulsFormatsExtensions.csproj" />
     <ProjectReference Include="SoulsFormats\SoulsFormats.csproj" />
   </ItemGroup>
