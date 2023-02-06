@@ -48,7 +48,11 @@ namespace DSRPorter
             
             GC.Collect();
 
-            MessageBox.Show("Finished!");
+            System.Media.SystemSounds.Exclamation.Play();
+
+            var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
+            if (result == DialogResult.Yes)
+                Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output file
         }
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)

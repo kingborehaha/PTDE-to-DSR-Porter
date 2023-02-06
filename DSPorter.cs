@@ -48,9 +48,7 @@ using SoulsFormatsExtensions;
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit?
- DrawParam
- * Offset method KINDA works...
- * With offset method, the lava seen in Tomb of the Giants is completely dark. figure that out (missing texture for the obj would be my guess?)
+ * make sure PTDE global event lua works fine (do a sunlight refight, fight ceaseless)
  chrBNDs
  * just titanite demon, right?
  * scaled objects

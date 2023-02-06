@@ -11,14 +11,14 @@ namespace DSRPorter
     public class TexturePorter
     {
         private readonly DSPorter _porter;
-        private Dictionary<string, HashSet<TPF>> tpfCache = new();
+        private readonly Dictionary<string, HashSet<TPF>> tpfCache = new();
 
         public TexturePorter(DSPorter porter)
         {
             _porter = porter;
         }
 
-        private TPF? CreateTPF(BND3 bnd)
+        private TPF? CreateTPFforBND(BND3 bnd)
         {
             HashSet<FLVER2.Texture> textures = GetFlverTextures(bnd);
             return CreateTPF(textures);
@@ -46,7 +46,7 @@ namespace DSRPorter
 
         private TPF? CreateTPF(HashSet<FLVER2.Texture> textures)
         {
-            TPF? targetTPF = null;
+            TPF? tpfTarget = null;
             foreach (var tex in textures)
             {
                 var split = tex.Path.Split("\\");
@@ -60,23 +60,23 @@ namespace DSRPorter
                     foreach (var bhd in Directory.GetFiles(bhdDirectory, "*.tpfbhd"))
                     {
                         restart:
-                        if (tpfCache.TryGetValue(bhd, out HashSet<TPF>? tpfs))
+                        if (tpfCache.TryGetValue(bhd, out HashSet<TPF>? tpfSourceList))
                         {
                             // TPF cache exists, search through it for the right texture.
-                            foreach (var sourceTPF in tpfs)
+                            foreach (var tpfSource in tpfSourceList)
                             {
-                                foreach (var tpfTex in sourceTPF.Textures)
+                                foreach (var tpfTex in tpfSource.Textures)
                                 {
                                     if (tpfTex.Name == fileName)
                                     {
-                                        targetTPF ??= new TPF()
+                                        tpfTarget ??= new TPF()
                                         {
                                             Compression = DCX.Type.None,
-                                            Encoding = sourceTPF.Encoding,
-                                            Flag2 = sourceTPF.Flag2,
-                                            Platform = sourceTPF.Platform,
+                                            Encoding = tpfSource.Encoding,
+                                            Flag2 = tpfSource.Flag2,
+                                            Platform = tpfSource.Platform,
                                         };
-                                        targetTPF.Textures.Add(tpfTex);
+                                        tpfTarget.Textures.Add(tpfTex);
                                         goto next;
                                     }
                                 }
@@ -92,7 +92,7 @@ namespace DSRPorter
                                 if (TPF.Is(file.Bytes))
                                 {
                                     var sourceTPF = TPF.Read(file.Bytes);
-                                    tpfCache[bhd].Add(sourceTPF);
+                                    this.tpfCache[bhd].Add(sourceTPF);
                                 }
                             }
                             goto restart;
@@ -101,7 +101,7 @@ namespace DSRPorter
                 }
                 next:;
             }
-            return targetTPF;
+            return tpfTarget;
         }
 
         private HashSet<FLVER2.Texture> GetFlverTextures(BND3 bnd)
@@ -156,7 +156,7 @@ namespace DSRPorter
                     throw new NotImplementedException($"Unhandled issue: \"{bndPath}\" has a file with an ID of 100 ({file.Name}).");
             }
 
-            TPF? newObjTPF = CreateTPF(objBND);
+            TPF? newObjTPF = CreateTPFforBND(objBND);
 
             if (newObjTPF != null && newObjTPF.Textures.Any())
             {
