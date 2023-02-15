@@ -18,26 +18,17 @@ using SoulsFormatsExtensions;
     * any compiled lua will just be replaced with DSR lua, unless the DSR lua cannot be found in which case program will complain.
  * scaled collision in MSB (maybe program should also report this, with vanilla ones blacklisted)
 
- DRAW PARAM
- * drawparam rows introduced in DSR are a concern, since if i overwite those, MSB references will be in trouble.
- * * maybe just make manual exceptions for these rows?
- * * maybe manual exceptions that are only allowed when relevent MSBs are not being overwritten?
-
  msb
- * option to keep DSR drawgroup improvements?
  * Scaled objects.
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
-
- Self contained object textures
-    solution implemented, do some in-game testing
 
 //// SOTE stuff
  EXE
  * use tk's propertyhook
  * maybe remake PTDE's while I'm at it
- main menu
-    texture
-    intro video replacement
+ menu textures
+ * equipment/UI
+    keep dSR where possible, resize SOTE otherwise. maybe AI upscale selectively? those are generally better than gimp's shitty resizing
  FFX
  * There are some DSR FFX I don't want to replace, and some FFX I want the PTDE versions of.
     * Maybe do a diff between vanilla PTDE and SOTE to see which FFX I modified, and include those (sans crystal FFX)
@@ -54,7 +45,8 @@ using SoulsFormatsExtensions;
  * scaled objects
     m10_01_00_00 - o1413 | o1201_n_blocker_1 - <1, 1.5, 1>
     m10_01_00_00 - o1413 | o1201_n_blocker_2 - <1, 2, 1>
-    m10_01_00_00 - o1413 | o1201_n_blocker_3 - <1, 2, 1>
+    m10_01_00_00 - o1413 | o1201_n_blocker_3 - <1, 2, 1> // dupe
+    m10_01_00_00 - o1317 | o1317_0001 - <1.05, 1, 1>
     m12_00_00_01 - o1312 | o_n_door_0001 - <1.36, 1.83, 0.95>
     m12_01_00_00 - o8300 | o_n_NGplus_1 - <0.5, 0.5, 0.5>
     m12_01_00_00 - o2403 | o_n_staterefresh - <1.5, 1.5, 1.5>
@@ -62,27 +54,20 @@ using SoulsFormatsExtensions;
     m13_02_00_00 - o1419 | o_n_blocker_ramp - <0.5, 1, 1>
     m14_01_00_00 - o4510 | o4510_n_illusorywall_1 - <1.6, 1.6, 1.6>
     m14_01_00_00 - o4830 | o_n_turret_obj - <16, 16, 16>
-    m14_01_00_00 - o4830 | o_n_turret_obj_0001 - <16, 16, 16>
+    m14_01_00_00 - o4830 | o_n_turret_obj_0001 - <16, 16, 16> // dupe
     m15_00_00_00 - o8540 | o_n_blocker_2 - <2, 2, 2>
     m16_00_00_00 - o6700 | o_n_OneWayWall - <2.3, 1.5, 1>
     m18_00_00_00 - o8051 | o8051_n_fog_eclipse_2.1 - <1, 1, 4>
     m18_00_00_00 - o8300 | o8300_n - <0.25, 0.15, 0.25>
     // BOC root seals
     m14_01_00_00 - o4610 | o4610_0000 - <0.75, 0.75, 0.75>
-    m14_01_00_00 - o4610 | o4610_0001 - <0.75, 0.75, 0.75>
-    m14_01_00_00 - o4610 | o4610_n_tendril_0001 - <0.75, 0.75, 0.75>
-    m14_01_00_00 - o4610 | o4610_n_tendril_0002 - <0.75, 0.75, 0.75>
-    m14_01_00_00 - o4610 | o4610_n_tendril_0003 - <0.75, 0.75, 0.75>
-
-    //can be worked around
-    //little jank
-    //replaced obj
-        (ceaseless arena gates blocking the little area)
-        m14_01_00_00 - o4700 | o4700_n_blocker_1 - <1.1, 1.2, 1.1>
-        m14_01_00_00 - o4700 | o4700_n_blocker_2 - <1.1, 1.2, 1.1>
-
-    //these MIGHT be fine?
-        //I forget if I disable collision on these during gameplay
+    m14_01_00_00 - o4610 | o4610_0001 - <0.75, 0.75, 0.75> // dupe
+    m14_01_00_00 - o4610 | o4610_n_tendril_0001 - <0.75, 0.75, 0.75> // dupe
+    m14_01_00_00 - o4610 | o4610_n_tendril_0002 - <0.75, 0.75, 0.75> // dupe
+    m14_01_00_00 - o4610 | o4610_n_tendril_0003 - <0.75, 0.75, 0.75> // dupe
+    // Ceaseless arena gates
+    m14_01_00_00 - o4700 | o4700_n_blocker_1 - <1.1, 1.2, 1.1>
+    m14_01_00_00 - o4700 | o4700_n_blocker_2 - <1.1, 1.2, 1.1> // dupe
 
     //these are fine:
         //vanilla
@@ -96,8 +81,10 @@ using SoulsFormatsExtensions;
         m10_00_00_00 - o1057 | o1057_22 - <2, 0.8, 0.5>
         // snuggly's nest
         m18_01_00_00 - o8550 | o8550_0001 - <0.458642, 0.458642, 0.458642>
-        // SOTE
-       m10_01_00_00 - o1317 | o1317_0001 - <1.05, 1, 1>
+
+// Misc
+Low priority
+ * Option to keep DSR drawgroup improvements?
  */
 
 
@@ -132,6 +119,12 @@ namespace DSRPorter
         {
             _progressBar = progressBar;
         }
+
+        public readonly List<ScaledObject> _SOTEScaledObjectList = new()
+        {
+            new ScaledObject("o6968", "o6969", Vector3.One),
+            new ScaledObject("o6968", "o6970", Vector3.One),
+        };
 
         private void DSRPorter_EMEVD()
         {
@@ -177,13 +170,49 @@ namespace DSRPorter
                     }
                     else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                     {
-                        OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
-                        p.Scale = Vector3.One;
-                    }
+                        if (!_Is_SOTE)
+                        {
+                            OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
+                            p.Scale = Vector3.One;
+                        }
+                        else
+                        {
+                            // TODO: populate a list of grim's objects
+                            string? newModelName = null;
+                            foreach (ScaledObject scaledObj in _SOTEScaledObjectList)
+                            {
+                                if (scaledObj.Matches(p.ModelName, p.Scale))
+                                {
+                                    newModelName = scaledObj.NewModelName;
+                                    p.ModelName = newModelName;
+                                    break;
+                                }
+                            }
 
+                            if (newModelName == null)
+                            {
+                                ScaledObject scaledObj = CreateScaledObject(p.ModelName, p.Scale);
+                                newModelName = scaledObj.NewModelName;
+                                p.ModelName = newModelName;
+                            }
+
+                            if (msb.Models.Objects.Find(e => e.Name == newModelName) == null)
+                            {
+                                MSB1.Model.Object model = new()
+                                {
+                                    Name = newModelName
+                                };
+                                msb.Models.Objects.Add(model);
+                            }
+
+                            p.Scale = Vector3.One;
+                        }
+                    }
                     /*
-                    if (_enableScaledObjectAdjustments && Util.HasModifiedScaling(p.Scale))
+                    else if (_enableScaledObjectAdjustments && Util.HasModifiedScaling(p.Scale))
                     {
+                        _objsToPort.Add(model.Name); // todo: this goes somewhere
+
                         string? newModelName = null;
                         foreach (ScaledObject scaledObj in _scaledObjects)
                         {
@@ -210,6 +239,7 @@ namespace DSRPorter
                             };
                             msb.Models.Objects.Add(model);
                         }
+                        p.Scale = Vector3.One;
                     }
                     */
                 }
@@ -440,7 +470,6 @@ namespace DSRPorter
             }
         }
 
-
         private ConcurrentBag<string> _debugOutput = new();
         private void DSRPorter_TransferParams(string datapath, bool isDrawParam = false)
         {
@@ -466,7 +495,6 @@ namespace DSRPorter
                 BND3 bnd_old = BND3.Read(bndPath_old);
                 BND3 bnd_new = BND3.Read(bndPath_new);
                 BND3 bnd_vanilla; 
-
 
                 Util.ApplyParamDefs(_paramdefs_ptde, bnd_old.Files, paramList_old);
                 Util.ApplyParamDefs(_paramdefs_dsr, bnd_new.Files, paramList_new);
@@ -528,14 +556,27 @@ namespace DSRPorter
 
                     param_new_target.Rows.Clear();
 
-                    if (_enableScaledObjectAdjustments && param_old.ParamType == "OBJECT_PARAM_ST")
+                    if (param_old.ParamType == "OBJECT_PARAM_ST")
                     {
-                        foreach (var scaledObj in _scaledObjects)
+                        if (_enableScaledObjectAdjustments)
                         {
-                            var OGRow = param_old[scaledObj.OGModelID];
-                            PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
-                            TransferParamRow(OGRow, newObjRow);
-                            param_new_target.Rows.Add(newObjRow);
+                            foreach (var scaledObj in _scaledObjects)
+                            {
+                                var OGRow = param_old[scaledObj.OGModelID];
+                                PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
+                                TransferParamRow(OGRow, newObjRow);
+                                param_new_target.Rows.Add(newObjRow);
+                            }
+                        }
+                        else if (_Is_SOTE)
+                        {
+                            foreach (var scaledObj in _SOTEScaledObjectList)
+                            {
+                                var OGRow = param_old[scaledObj.OGModelID];
+                                PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
+                                TransferParamRow(OGRow, newObjRow);
+                                param_new_target.Rows.Add(newObjRow);
+                            }
                         }
                     }
 
@@ -609,6 +650,7 @@ namespace DSRPorter
                         }
                     }
                 });
+
                 // Save each param, then the parambnd
                 foreach (BinderFile file in bnd_new.Files)
                 {
@@ -895,10 +937,19 @@ namespace DSRPorter
         {
             while (!_MSBFinished)
             {
+                // Wait for MSB to populate list of objects transferred between maps
                 Thread.Sleep(1000);
             }
 
             TexturePorter texPorter = new(this);
+
+            if (_Is_SOTE)
+            {
+                foreach (var scaledObj in _SOTEScaledObjectList)
+                {
+                    _objsToPort.Add(scaledObj.NewModelName);
+                }
+            }
 
             foreach (var obj in _objsToPort)
             {

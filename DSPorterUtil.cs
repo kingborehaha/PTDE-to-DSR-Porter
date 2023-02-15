@@ -97,9 +97,15 @@ namespace DSRPorter
             public int OGModelID => int.Parse(OGModelName.Replace("o", ""));
             public int NewModelID => int.Parse(NewModelName.Replace("o", ""));
 
-            public ScaledObject(string modelName, Vector3 scaling)
+            public ScaledObject(string oldModelName, Vector3 scaling)
             {
-                OGModelName = modelName;
+                OGModelName = oldModelName;
+                Scaling = scaling;
+            }
+            public ScaledObject(string oldModelName, string newModelName, Vector3 scaling)
+            {
+                OGModelName = oldModelName;
+                NewModelName = newModelName;
                 Scaling = scaling;
             }
 
@@ -132,14 +138,29 @@ namespace DSRPorter
 
             var oldpath = $@"{DataPath_DSR}\obj\{scaledObj.OGModelName}.objbnd.dcx";
             var newpath = $@"{DataPath_DSR}\obj\{scaledObj.NewModelName}.objbnd.dcx";
-            BND3 oldBND = BND3.Read(oldpath);
+            BND3 bnd = BND3.Read(oldpath);
 
-            ChangeBNDFileNames(oldBND, scaledObj.OGModelName, scaledObj.NewModelName);
+            foreach (var file in bnd.Files)
+            {
+                if (FLVER2.Is(file.Bytes))
+                {
+                    FLVER2 flver = FLVER2.Read(file.Bytes);
+                    foreach (var bone in flver.Bones)
+                    {
+                        bone.Scale = scale;
+                    }
+                    file.Bytes = flver.Write();
+                }
+            }
 
-            Util.WritePortedSoulsFile(oldBND, DataPath_DSR, newpath, CompressionType);
 
             // TODO: HKX stuff
-            // Also need to create an objParam entry
+            // TODO: objParam entry
+
+
+            ChangeBNDFileNames(bnd, scaledObj.OGModelName, scaledObj.NewModelName);
+
+            Util.WritePortedSoulsFile(bnd, DataPath_DSR, newpath, CompressionType);
 
             return scaledObj;
         }
