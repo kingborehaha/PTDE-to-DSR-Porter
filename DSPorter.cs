@@ -358,7 +358,14 @@ namespace DSRPorter
             {
                 // Add any new DSR entries
                 var entry_old = fmg_old.Entries.Find(e => e.ID == entry_new.ID);
-                if (entry_old == null)
+                if (entry_old != null)
+                {
+                    if (string.IsNullOrEmpty(entry_old.Text))
+                    {
+                        entry_old.Text = entry_new.Text;
+                    }
+                }
+                else
                 {
                     fmg_old.Entries.Add(entry_new);
                 }
@@ -570,12 +577,22 @@ namespace DSRPorter
                         }
                         else if (_Is_SOTE)
                         {
-                            foreach (var scaledObj in _SOTEScaledObjectList)
+                            try
                             {
-                                var OGRow = param_old[scaledObj.OGModelID];
-                                PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
-                                TransferParamRow(OGRow, newObjRow);
-                                param_new_target.Rows.Add(newObjRow);
+                                foreach (var scaledObj in _SOTEScaledObjectList)
+                                {
+                                    var OGRow = param_old[scaledObj.OGModelID];
+                                    PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
+                                    TransferParamRow(OGRow, newObjRow);
+                                    param_new_target.Rows.Add(newObjRow);
+                                }
+                            }
+                            catch
+                            {
+#if !DEBUG
+                                throw;
+#endif
+                                Debugger.Break();
                             }
                         }
                     }

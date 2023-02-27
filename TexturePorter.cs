@@ -59,7 +59,7 @@ namespace DSRPorter
                     var bhdDirectory = $@"{_porter.DataPath_DSR}\map\{mapFolder}";
                     foreach (var bhd in Directory.GetFiles(bhdDirectory, "*.tpfbhd"))
                     {
-                        restart:
+                    restart:
                         if (tpfCache.TryGetValue(bhd, out HashSet<TPF>? tpfSourceList))
                         {
                             // TPF cache exists, search through it for the right texture.
@@ -99,7 +99,7 @@ namespace DSRPorter
                         }
                     }
                 }
-                next:;
+            next:;
             }
             return tpfTarget;
         }
