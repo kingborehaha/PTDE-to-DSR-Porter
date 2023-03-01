@@ -24,8 +24,7 @@ using SoulsFormatsExtensions;
 
 //// SOTE stuff
  EXE
- * use tk's propertyhook
- * maybe remake PTDE's while I'm at it
+ * Done
  menu textures
  * equipment/UI
     keep dSR where possible, resize SOTE otherwise. maybe AI upscale selectively? those are generally better than gimp's shitty resizing
@@ -37,12 +36,17 @@ using SoulsFormatsExtensions;
  * see what changes i made to these objects in devlogs. root seal is especially concerning, dont remember which new file i made for that (TAE?)
     * re: root seals. i think i scaled all of these, so changes would need to be made to scaled dupes
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
+    * scaled objects   
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit?
  * make sure PTDE global event lua works fine (do a sunlight refight, fight ceaseless)
  chrBNDs
- * just titanite demon, right?
- * scaled objects
+ * include added files and .flver
+ * Use DSR hkx
+ * note this somewhere.
+    
+    m10_01_00_00 - o1305 | o1305_02 - <1.08, 1, 1> // Added this one in 2.0.1 (watchtower basement door to basin)
+
     m10_01_00_00 - o1413 | o1201_n_blocker_1 - <1, 1.5, 1>
     m10_01_00_00 - o1413 | o1201_n_blocker_2 - <1, 2, 1>
     m10_01_00_00 - o1413 | o1201_n_blocker_3 - <1, 2, 1> // dupe
@@ -122,8 +126,24 @@ namespace DSRPorter
 
         public readonly List<ScaledObject> _SOTEScaledObjectList = new()
         {
-            new ScaledObject("o6968", "o6969", Vector3.One),
-            new ScaledObject("o6968", "o6970", Vector3.One),
+            //todo: new object names once grim provides them
+            new ScaledObject("o1413", "o", new Vector3(1.0f,    1.5f,   1.0f)),
+            new ScaledObject("o1413", "o", new Vector3(1.0f,    2.0f,   1.0f)),
+            new ScaledObject("o1312", "o", new Vector3(1.36f,   1.83f,  0.95f)),
+            new ScaledObject("o8300", "o", new Vector3(0.5f,    0.5f,   0.5f)),
+            new ScaledObject("o8300", "o", new Vector3(0.25f,   0.15f,  0.25f)),
+            new ScaledObject("o2403", "o", new Vector3(1.5f,    1.5f,   1.5f)),
+            new ScaledObject("o3010", "o", new Vector3(0.5f,    0.5f,   0.5f)),
+            new ScaledObject("o1419", "o", new Vector3(0.5f,    1.0f,   1.0f)),
+            new ScaledObject("o4510", "o", new Vector3(1.6f,    1.6f,   1.6f)),
+            new ScaledObject("o4830", "o", new Vector3(16.0f,  16.0f,  16.0f)),
+            new ScaledObject("o8540", "o", new Vector3(2.0f,    2.0f,   2.0f)),
+            new ScaledObject("o6700", "o", new Vector3(2.3f,    1.5f,   1.0f)),
+            new ScaledObject("o8051", "o", new Vector3(1.0f,    1.0f,   4.0f)),
+            new ScaledObject("o4610", "o", new Vector3(0.75f,   0.75f,  0.75f)),
+            new ScaledObject("o4700", "o", new Vector3(1.1f,    1.2f,   1.1f)),
+            new ScaledObject("o1317", "o", new Vector3(1.05f,   1.0f,   1.0f)),
+            new ScaledObject("o1305", "o", new Vector3(1.08f,   1.0f,   1.0f)),
         };
 
         private void DSRPorter_EMEVD()
@@ -147,14 +167,14 @@ namespace DSRPorter
             if (paths.Length == 0)
                 return;
 
-            Dictionary<string, List<string>> scalingExceptionDict = LoadResource_MSBExceptions();
+            Dictionary<string, List<string>> scalingExceptionDict = LoadResource_MSBExceptions(); // MSB_Scaled_Obj_Exceptions.txt
 
             foreach (var path in paths)
             {
                 string msbName = Path.GetFileNameWithoutExtension(path);
                 var msb = MSB1.Read(path);
                 MSB1 msb_vanilla = MSB1.Read(path.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla));
-                scalingExceptionDict.TryGetValue(msbName, out List<string>? exceptionList);
+                scalingExceptionDict.TryGetValue(msbName, out List<string>? scalingExceptionList);
 
                 foreach (var model in msb.Models.Objects)
                 {
@@ -165,7 +185,7 @@ namespace DSRPorter
                 }
                 foreach (var p in msb.Parts.Objects)
                 {
-                    if (exceptionList != null && exceptionList.Contains(p.Name))
+                    if (scalingExceptionList != null && scalingExceptionList.Contains(p.Name))
                     { 
                     }
                     else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
@@ -177,34 +197,33 @@ namespace DSRPorter
                         }
                         else
                         {
-                            // TODO: populate a list of grim's objects
-                            string? newModelName = null;
-                            foreach (ScaledObject scaledObj in _SOTEScaledObjectList)
+                            ScaledObject? scaledObj = null;
+                            foreach (var so in _SOTEScaledObjectList)
                             {
-                                if (scaledObj.Matches(p.ModelName, p.Scale))
+                                // SOTE: go through pre-scaled object list to find the corresponding pre-scaled object.
+                                if (so.Matches(p.ModelName, p.Scale))
                                 {
-                                    newModelName = scaledObj.NewModelName;
-                                    p.ModelName = newModelName;
+                                    scaledObj = so;
                                     break;
                                 }
                             }
-
-                            if (newModelName == null)
+                            if (scaledObj == null)
                             {
-                                ScaledObject scaledObj = CreateScaledObject(p.ModelName, p.Scale);
-                                newModelName = scaledObj.NewModelName;
-                                p.ModelName = newModelName;
+                                // Couldn't find pre-scaled object in the list, something went wrong and needs to be fixed.
+                                throw new Exception($"Couldn't find SOTE pre-scaled object for {msbName}\\{p.Name} {p.Scale}");
                             }
 
-                            if (msb.Models.Objects.Find(e => e.Name == newModelName) == null)
+                            if (msb.Models.Objects.Find(e => e.Name == scaledObj.NewModelName) == null)
                             {
+                                // Add pre-scaled object to MSB models.
                                 MSB1.Model.Object model = new()
                                 {
-                                    Name = newModelName
+                                    Name = scaledObj.NewModelName
                                 };
                                 msb.Models.Objects.Add(model);
                             }
 
+                            OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" now uses SOTE pre-scaled object \"{scaledObj.NewModelName}\". MSB scaling was reverted in the process: {p.Scale} -> {Vector3.One}");
                             p.Scale = Vector3.One;
                         }
                     }
@@ -233,6 +252,7 @@ namespace DSRPorter
 
                         if (msb.Models.Objects.Find(e => e.Name == newModelName) == null)
                         {
+                            // Add pre-scaled object to MSB models.
                             MSB1.Model.Object model = new()
                             {
                                 Name = newModelName
@@ -358,16 +378,13 @@ namespace DSRPorter
             {
                 // Add any new DSR entries
                 var entry_old = fmg_old.Entries.Find(e => e.ID == entry_new.ID);
-                if (entry_old != null)
-                {
-                    if (string.IsNullOrEmpty(entry_old.Text))
-                    {
-                        entry_old.Text = entry_new.Text;
-                    }
-                }
-                else
+                if (entry_old == null)
                 {
                     fmg_old.Entries.Add(entry_new);
+                }
+                else if (string.IsNullOrEmpty(entry_old.Text))
+                {
+                    entry_old.Text = entry_new.Text;
                 }
             }
             file_new.Bytes = fmg_old.Write();
@@ -402,18 +419,7 @@ namespace DSRPorter
                     {
                         throw new FileNotFoundException($"Couldn't find file ID {file_new.ID} in PTDE MSGBNDs.");
                     }
-                    switch (file_new.ID)
-                    {
-                        /*
-                        case (int)SoulsResources.FmgIDType.MenuKeyGuide:
-                        case (int)SoulsResources.FmgIDType.MenuKeyGuide_Patch:
-                            // Just use DSR entries.
-                            break;
-                        */
-                        default:
-                            TransferFmgEntries(file_old, file_new);
-                            break;
-                    }
+                    TransferFmgEntries(file_old, file_new);
                 }
                 Util.WritePortedSoulsFile(bnd_new, DataPath_PTDE_Mod, path, CompressionType);
             }
@@ -577,22 +583,16 @@ namespace DSRPorter
                         }
                         else if (_Is_SOTE)
                         {
-                            try
+                            foreach (var scaledObj in _SOTEScaledObjectList)
                             {
-                                foreach (var scaledObj in _SOTEScaledObjectList)
+                                var OGRow = param_old[scaledObj.OGModelID];
+                                if (OGRow == null)
                                 {
-                                    var OGRow = param_old[scaledObj.OGModelID];
-                                    PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
-                                    TransferParamRow(OGRow, newObjRow);
-                                    param_new_target.Rows.Add(newObjRow);
+                                    throw new Exception($"Couldn't find object param row for {scaledObj.OGModelName} / {scaledObj.OGModelID}");
                                 }
-                            }
-                            catch
-                            {
-#if !DEBUG
-                                throw;
-#endif
-                                Debugger.Break();
+                                PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
+                                TransferParamRow(OGRow, newObjRow);
+                                param_new_target.Rows.Add(newObjRow);
                             }
                         }
                     }
@@ -716,8 +716,27 @@ namespace DSRPorter
             OutputLog.Add($@"Finished: chr\*.anibnd");
         }
 
+        private void DSRPorter_CHRBND()
+        {
+            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\chr", "*.chrbnd");
+            if (paths.Length == 0)
+                return;
+            foreach (var bndPath_old in paths)
+            {
+                string bndPath_new = bndPath_old.Replace(DataPath_PTDE_Mod, $@"{DataPath_DSR}") + ".dcx";
+                var bnd_old = BND3.Read(bndPath_old);
+                var bnd_new = BND3.Read(bndPath_new);
+                ModifyEntityBND(bnd_old, bnd_new);
+
+                Util.WritePortedSoulsFile(bnd_old, DataPath_PTDE_Mod, bndPath_old, CompressionType);
+            }
+            Debug.WriteLine("Finished: CHRBNDs");
+            OutputLog.Add($@"Finished: chr\*.chrbnd");
+        }
+
         /// <summary>
-        /// Recursive func for porting .anibnd and .objbnd
+        /// Recursive func for porting bnd files used for objects and characters.
+        /// Uses DSR .hkx files, but ports everything else.
         /// </summary>
         private void ModifyEntityBND(BND3 bnd_old, BND3 bnd_new)
         {
@@ -1004,7 +1023,8 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_FFX()), // Done, needs more in-game testing though.
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
-                Task.Run(() => DSRPorter_ANIBND()), // Done, may have per-enemy problems though.
+                Task.Run(() => DSRPorter_ANIBND()), // Done
+                Task.Run(() => DSRPorter_CHRBND()), // Untested
                 Task.Run(() => DSRPorter_OBJBND()), // Done except for scaling stuff.
                 Task.Run(() => DSRPorter_MSGBND()), // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
                 Task.Run(() => DSRPorter_LUABND()), // Seems good? Needs more testing.
