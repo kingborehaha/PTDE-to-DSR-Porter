@@ -47,16 +47,22 @@ namespace DSPorterUtil
 
         public static bool HasModifiedScaling(Vector3 v1)
         {
-            return Vector3IsEqual(v1, new Vector3(1.0f, 1.0f, 1.0f));
-        }
-
-        public static bool Vector3IsEqual(Vector3 v1, Vector3 v2)
-        {
-            if (Vector3.Distance(v1, v2) > 0.001f)
+            if (Vector3.Distance(v1, new Vector3(1.0f, 1.0f, 1.0f)) > 0.001f)
             {
                 return true;
             }
             return false;
+        }
+
+        public static bool Vector3IsEqual(Vector3 v1, Vector3 v2)
+        {
+            if (!FloatIsEqual(v1.X, v2.X))
+                return false;
+            if (!FloatIsEqual(v1.Y, v2.Y))
+                return false;
+            if (!FloatIsEqual(v1.Z, v2.Z))
+                return false;
+            return true;
         }
 
         public static bool FloatIsEqual(float f1, float f2)

@@ -24,26 +24,28 @@ using SoulsFormatsExtensions;
 
 //// SOTE stuff
  EXE
- * Done
+ * Done, need to manually move DLL to output.
  menu textures
- * equipment/UI
-    keep dSR where possible, resize SOTE otherwise. maybe AI upscale selectively? those are generally better than gimp's shitty resizing
+ * Merging done, need to manually move files from "Y:\Projects Y\Modding\DSR\DSR port modding\menu merged\menu in progress" to output.
  FFX
  * There are some DSR FFX I don't want to replace, and some FFX I want the PTDE versions of.
     * Maybe do a diff between vanilla PTDE and SOTE to see which FFX I modified, and include those (sans crystal FFX)
     * Then do a playthrough with debug on and if I see any FFX I hate (chaos FFX from ceaseless, other chaos boys come to mind) then I add it to a list which program reads and transfers when present.
+    * Use DSR crystal FFX
+    * Use DSR fog gates?
+        * There will be inconsinsistency otherwise, unless i decide to port those exceptions too.
+        * SOTE fog gates also look pretty shitty too so maybe just go with DSR for those and just give up and adjust some DSR ffx for whatever I need
  OBJ
  * see what changes i made to these objects in devlogs. root seal is especially concerning, dont remember which new file i made for that (TAE?)
-    * re: root seals. i think i scaled all of these, so changes would need to be made to scaled dupes
+    * re: root seals. i scaled all of these, so changes would need to be made to scaled dupes
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
     * scaled objects   
  LUA
- * need to check if game has enough memory for all that. May need to compile it to 64 bit?
+ * need to check if game has enough memory for all that. May need to compile it to 64 bit if i get crashes.
  * make sure PTDE global event lua works fine (do a sunlight refight, fight ceaseless)
  chrBNDs
- * include added files and .flver
- * Use DSR hkx
- * note this somewhere.
+ * implemented but untested
+ * titanite demon (hkxpw) and black knight/boc tree (flver) should work with current porting. double check though
     
     m10_01_00_00 - o1305 | o1305_02 - <1.08, 1, 1> // Added this one in 2.0.1 (watchtower basement door to basin)
 
@@ -112,7 +114,40 @@ namespace DSRPorter
         public ConcurrentBag<string> OutputLog = new();
 
         private readonly bool _enableScaledObjectAdjustments = false;
-        private readonly bool _Is_SOTE = true;
+        private readonly bool _is_SOTE = true;
+        private readonly bool _useFfxWhitelist = false; // If true, only FFX in the whitelist will be ported to DSR. All other non-new FFX will be DSR.
+
+        private readonly List<long> _ffxWhitelist = new()
+        {
+            // flaw with this idea: FFX I modified that I actually want to keep, like projectile life changes.
+                // Maybe I oughta compare PTDE vanilla to figure out which ones I changed?
+            /*
+            90000, // bonfire
+            90001, // bonfire
+            90002, // bonfire
+            90003, // bonfire
+            90004, // bonfire
+            90005, // bonfire
+            90006, // bonfire
+            90007, // bonfire
+            90008, // bonfire
+            90009, // bonfire
+            90010, // bonfire
+            90011, // bonfire
+            90012, // bonfire
+            90013, // bonfire
+            90014, // bonfire
+            90015, // bonfire
+            90016, // bonfire
+            90017, // bonfire
+            90018, // bonfire
+            90019, // bonfire
+            90020, // bonfire
+            // TODO
+            // bonfire FFX
+            // stray demon/firesage demon AOE ?
+            */
+        };
 
         private readonly bool _useDSRToneMapBankValues = true;
         public bool _descaleMSBObjects = true;
@@ -124,26 +159,44 @@ namespace DSRPorter
             _progressBar = progressBar;
         }
 
-        public readonly List<ScaledObject> _SOTEScaledObjectList = new()
+        public readonly List<ScaledObject> SOTEScaledObjectList = new()
         {
-            //todo: new object names once grim provides them
-            new ScaledObject("o1413", "o", new Vector3(1.0f,    1.5f,   1.0f)),
-            new ScaledObject("o1413", "o", new Vector3(1.0f,    2.0f,   1.0f)),
-            new ScaledObject("o1312", "o", new Vector3(1.36f,   1.83f,  0.95f)),
-            new ScaledObject("o8300", "o", new Vector3(0.5f,    0.5f,   0.5f)),
-            new ScaledObject("o8300", "o", new Vector3(0.25f,   0.15f,  0.25f)),
-            new ScaledObject("o2403", "o", new Vector3(1.5f,    1.5f,   1.5f)),
-            new ScaledObject("o3010", "o", new Vector3(0.5f,    0.5f,   0.5f)),
-            new ScaledObject("o1419", "o", new Vector3(0.5f,    1.0f,   1.0f)),
-            new ScaledObject("o4510", "o", new Vector3(1.6f,    1.6f,   1.6f)),
-            new ScaledObject("o4830", "o", new Vector3(16.0f,  16.0f,  16.0f)),
-            new ScaledObject("o8540", "o", new Vector3(2.0f,    2.0f,   2.0f)),
-            new ScaledObject("o6700", "o", new Vector3(2.3f,    1.5f,   1.0f)),
-            new ScaledObject("o8051", "o", new Vector3(1.0f,    1.0f,   4.0f)),
-            new ScaledObject("o4610", "o", new Vector3(0.75f,   0.75f,  0.75f)),
-            new ScaledObject("o4700", "o", new Vector3(1.1f,    1.2f,   1.1f)),
-            new ScaledObject("o1317", "o", new Vector3(1.05f,   1.0f,   1.0f)),
-            new ScaledObject("o1305", "o", new Vector3(1.08f,   1.0f,   1.0f)),
+            /*    
+            o1413 -> o1422.objbnd.dcx
+            o1413 -> o1423.objbnd.dcx
+            o1312 -> o1324.objbnd.dcx
+            o8300 -> o8301.objbnd.dcx
+            o2403 -> o2404.objbnd.dcx
+            o3010 -> o3012.objbnd.dcx
+            o1419 -> o1424.objbnd.dcx
+            o4510 -> o4511.objbnd.dcx
+            o4830 -> o4831.objbnd.dcx
+            o8540 -> o8545.objbnd.dcx
+            o6700 -> o6701.objbnd.dcx
+            o8051 -> o8052.objbnd.dcx
+            o8300 -> o8302.objbnd.dcx
+            o4610 -> o4612.objbnd.dcx
+            o4700 -> o4702.objbnd.dcx
+            o1317 -> o1325.objbnd.dcx
+            o1305 -> o1307.objbnd.dcx
+            */
+            new ScaledObject("o1413", "o1422", new Vector3( 1.0f,    1.5f,   1.0f)),
+            new ScaledObject("o1413", "o1423", new Vector3( 1.0f,    2.0f,   1.0f)),
+            new ScaledObject("o1312", "o1324", new Vector3( 1.36f,   1.83f,  0.95f)),
+            new ScaledObject("o8300", "o8301", new Vector3( 0.5f,    0.5f,   0.5f)),
+            new ScaledObject("o2403", "o2404", new Vector3( 1.5f,    1.5f,   1.5f)),
+            new ScaledObject("o3010", "o3012", new Vector3( 0.5f,    0.5f,   0.5f)),
+            new ScaledObject("o1419", "o1424", new Vector3( 0.5f,    1.0f,   1.0f)),
+            new ScaledObject("o4510", "o4511", new Vector3( 1.6f,    1.6f,   1.6f)),
+            new ScaledObject("o4830", "o4831", new Vector3(16.0f,   16.0f,  16.0f)),
+            new ScaledObject("o8540", "o8545", new Vector3( 2.0f,    2.0f,   2.0f)),
+            new ScaledObject("o6700", "o6701", new Vector3( 2.3f,    1.5f,   1.0f)),
+            new ScaledObject("o8051", "o8052", new Vector3( 1.0f,    1.0f,   4.0f)),
+            new ScaledObject("o8300", "o8302", new Vector3( 0.25f,   0.15f,  0.25f)),
+            new ScaledObject("o4610", "o4612", new Vector3( 0.75f,   0.75f,  0.75f)),
+            new ScaledObject("o4700", "o4702", new Vector3( 1.1f,    1.2f,   1.1f)),
+            new ScaledObject("o1317", "o1325", new Vector3( 1.05f,   1.0f,   1.0f)),
+            new ScaledObject("o1305", "o1307", new Vector3( 1.08f,   1.0f,   1.0f)),
         };
 
         private void DSRPorter_EMEVD()
@@ -190,7 +243,7 @@ namespace DSRPorter
                     }
                     else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                     {
-                        if (!_Is_SOTE)
+                        if (!_is_SOTE)
                         {
                             OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
                             p.Scale = Vector3.One;
@@ -198,7 +251,7 @@ namespace DSRPorter
                         else
                         {
                             ScaledObject? scaledObj = null;
-                            foreach (var so in _SOTEScaledObjectList)
+                            foreach (var so in SOTEScaledObjectList)
                             {
                                 // SOTE: go through pre-scaled object list to find the corresponding pre-scaled object.
                                 if (so.Matches(p.ModelName, p.Scale))
@@ -224,6 +277,7 @@ namespace DSRPorter
                             }
 
                             OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" now uses SOTE pre-scaled object \"{scaledObj.NewModelName}\". MSB scaling was reverted in the process: {p.Scale} -> {Vector3.One}");
+                            p.ModelName = scaledObj.NewModelName;
                             p.Scale = Vector3.One;
                         }
                     }
@@ -262,7 +316,7 @@ namespace DSRPorter
                         p.Scale = Vector3.One;
                     }
                     */
-                }
+        }
                 foreach (var p in msb.Parts.Collisions)
                 {
                     if (true)
@@ -340,10 +394,23 @@ namespace DSRPorter
 
                     if (file_new != null)
                     {
-                        file_new.Bytes = file_old.Bytes;
+                        // DSR has this FFX already.
+                        if (_useFfxWhitelist)
+                        {
+                            if (_ffxWhitelist.Contains(GetFFXId(file_new.Name)))
+                            {
+                                Debugger.Break();
+                                file_new.Bytes = file_old.Bytes;
+                            }
+                        }
+                        else
+                        {
+                            file_new.Bytes = file_old.Bytes;
+                        }
                     }
                     else
                     {
+                        // DSR doesn't have this FFX, ensure the ID is unused then add it.
                         while (bnd_new.Files.Find(f => f.ID == file_old.ID) != null)
                         {
                             file_old.ID++;
@@ -527,7 +594,7 @@ namespace DSRPorter
                         {
                             // DSR defs can't handle this, but it's all default values in PTDE so I doubt it matters
                         }
-                        else if (_Is_SOTE
+                        else if (_is_SOTE
                             && (item.Key.StartsWith("s18_1") || item.Key.StartsWith("m18_1")))
                         {
                             // Those drawparams I added to SOTE but never used
@@ -581,15 +648,20 @@ namespace DSRPorter
                                 param_new_target.Rows.Add(newObjRow);
                             }
                         }
-                        else if (_Is_SOTE)
+                        else if (_is_SOTE)
                         {
-                            foreach (var scaledObj in _SOTEScaledObjectList)
+                            foreach (var scaledObj in SOTEScaledObjectList)
                             {
                                 var OGRow = param_old[scaledObj.OGModelID];
                                 if (OGRow == null)
                                 {
-                                    throw new Exception($"Couldn't find object param row for {scaledObj.OGModelName} / {scaledObj.OGModelID}");
-                                }
+                                    // Apparently this isn't an issue.
+#if DEBUG
+                                    OutputLog.Add($"Couldn't find object param row for {scaledObj.OGModelName}. This probably doesn't matter.");
+#endif
+                                    //throw new Exception($"Couldn't find object param row for {scaledObj.OGModelName}}");
+                                    continue;
+            }
                                 PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
                                 TransferParamRow(OGRow, newObjRow);
                                 param_new_target.Rows.Add(newObjRow);
@@ -840,7 +912,7 @@ namespace DSRPorter
             }
             Debug.WriteLine("Finished: Generic Files");
             OutputLog.Add($@"Finished: {directory}\{searchPattern}"); ;
-        }   
+        }
 
         private void DSRPorter_GenericBNDs(string directory, string searchPattern, bool compress, bool searchInnerFolders = false)
         {
@@ -979,9 +1051,9 @@ namespace DSRPorter
 
             TexturePorter texPorter = new(this);
 
-            if (_Is_SOTE)
+            if (_is_SOTE)
             {
-                foreach (var scaledObj in _SOTEScaledObjectList)
+                foreach (var scaledObj in SOTEScaledObjectList)
                 {
                     _objsToPort.Add(scaledObj.NewModelName);
                 }
@@ -999,7 +1071,7 @@ namespace DSRPorter
         {
             if (Directory.Exists(DataPath_Output))
             {
-                var result = MessageBox.Show("Output folder already exists. Delete output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNoCancel);
+                var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNoCancel);
                 if (result == DialogResult.Cancel)
                 {
                     return;
@@ -1018,27 +1090,29 @@ namespace DSRPorter
 
             List<Task> taskList = new()
             {
-                Task.Run(() => DSRPorter_MSB()), // Done, needs more in-game testing though.
-                
-                Task.Run(() => DSRPorter_FFX()), // Done, needs more in-game testing though.
+                //Task.Run(() => DSRPorter_MSB()), // Done
+                /*
+                // temporarily disables for faster testing
+                Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_ANIBND()), // Done
                 Task.Run(() => DSRPorter_CHRBND()), // Untested
-                Task.Run(() => DSRPorter_OBJBND()), // Done except for scaling stuff.
-                Task.Run(() => DSRPorter_MSGBND()), // Seems mostly good, needs more testing though. Also I should probably still convert button prompts
-                Task.Run(() => DSRPorter_LUABND()), // Seems good? Needs more testing.
+                Task.Run(() => DSRPorter_OBJBND()), // Done
+                Task.Run(() => DSRPorter_MSGBND()), // Done? Make sure there isn't any missing <?hotkey?>'s still.
+                Task.Run(() => DSRPorter_LUABND()), // Done? Needs memory limit crash testing and global event testing.
 
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // TODO: make sure these actually work.
-                
+                */
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
-                Task.Run(() => DSRPorter_GameParam()), // Done
+                //Task.Run(() => DSRPorter_GameParam()), // Done
+                
                 Task.Run(() => DSRPorter_DrawParam()), // Done, may need more manual adjustments. Do in-game testing.
                 
-                Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
+                //Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
             };
             var taskCount = taskList.Count;
             while (taskList.Any())

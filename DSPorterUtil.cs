@@ -46,7 +46,7 @@ namespace DSRPorter
                 var newCell = row_new.Cells[iField];
                 var vanillaCell = row_vanilla.Cells[iField];
 
-                if (oldCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
+                if (newCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
                 {
                     // Skip over any padding.
                     continue;
@@ -63,10 +63,10 @@ namespace DSRPorter
                 }
                 dynamic offsetVal = (dynamic)oldCell.Value - (dynamic)vanillaCell.Value;
 
-                /*
+                
                 if (offsetVal != 0)
                     Debugger.Break();
-                */
+                
 
                 newCell.Value = (dynamic)newCell.Value + offsetVal;
             }
@@ -153,11 +153,6 @@ namespace DSRPorter
                 }
             }
 
-
-            // TODO: HKX stuff
-            // TODO: objParam entry
-
-
             ChangeBNDFileNames(bnd, scaledObj.OGModelName, scaledObj.NewModelName);
 
             Util.WritePortedSoulsFile(bnd, DataPath_DSR, newpath, CompressionType);
@@ -165,11 +160,17 @@ namespace DSRPorter
             return scaledObj;
         }
 
-        private bool IsCoreFFX(BinderFile binder)
+        public long GetFFXId(string name)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(name);
+            long id = long.Parse(string.Join("", fileName.Where(c => char.IsDigit(c))));
+            return id;
+        }
+
+        public bool IsCoreFFX(BinderFile binder)
         {
             // Some FFX are super important and cannot be changed without breaking the game.
-            string fileName = Path.GetFileNameWithoutExtension(binder.Name);
-            var id = long.Parse(string.Join("", fileName.Where(c => char.IsDigit(c))));
+            var id = GetFFXId(binder.Name);
             if (id <= 2999 && id >= 2000)
                 return true;
             return false;
