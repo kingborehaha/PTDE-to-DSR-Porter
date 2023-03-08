@@ -12,7 +12,7 @@ namespace DSRPorter
 {
     public partial class DSPorter
     {
-        private void TransferParamRow(PARAM.Row row_old, PARAM.Row row_new)
+        private static void TransferParamRow(PARAM.Row row_old, PARAM.Row row_new)
         {
             for (var iField = 0; iField < row_old.Cells.Count; iField++)
             {
@@ -38,7 +38,7 @@ namespace DSRPorter
             }
             return;
         }
-        private void OffsetParamRow(PARAM.Row row_old, PARAM.Row row_new, PARAM.Row row_vanilla)
+        private static void OffsetParamRow(PARAM.Row row_old, PARAM.Row row_new, PARAM.Row row_vanilla)
         {
             for (var iField = 0; iField < row_old.Cells.Count; iField++)
             {
@@ -63,11 +63,10 @@ namespace DSRPorter
                 }
                 dynamic offsetVal = (dynamic)oldCell.Value - (dynamic)vanillaCell.Value;
 
-                
+                /*
                 if (offsetVal != 0)
                     Debugger.Break();
-                
-
+                */
                 newCell.Value = (dynamic)newCell.Value + offsetVal;
             }
             return;

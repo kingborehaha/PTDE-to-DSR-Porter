@@ -233,6 +233,14 @@ namespace DSRPorter
                 {
                     if (msb_vanilla.Models.Objects.Find(e => e.Name == model.Name) == null)
                     {
+                        if (_is_SOTE)
+                        {
+                            if (model.Name.Contains("4203"))
+                            {
+                                // Non-existant model I shoved into m18_01 model param somehow.
+                                continue;
+                            }
+                        }
                         _objsToPort.Add(model.Name);
                     }
                 }
@@ -829,7 +837,6 @@ namespace DSRPorter
                     BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
                     if (file_new == null)
                     {
-                        //MessageBox.Show($"{file_old.Name} can't be found in DSR data and will be skipped. This file must be ported manually.", "Warning");
                         OutputLog.Add($"Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
                         continue;
                     }
@@ -1062,7 +1069,14 @@ namespace DSRPorter
             foreach (var obj in _objsToPort)
             {
                 texPorter.SelfContainTextures_Objbnd(obj);
-                OutputLog.Add($@"Added self-containing textures: {obj}");
+                if (_is_SOTE)
+                {
+                    OutputLog.Add($@"Object was present to a new map or is a SOTE scaled object, added self-contained textures: {obj}");
+                }
+                else
+                {
+                    OutputLog.Add($@"Object was present in a new map, added self-contained textures: {obj}");
+                }
                 _progressBar.Invoke(() => _progressBar.Increment(1 + 300 / _objsToPort.Count));
             }
         }
@@ -1088,11 +1102,10 @@ namespace DSRPorter
             DataPath_PTDE_Mod = ptdePath_Mod;
             DataPath_DSR = dsrPath;
 
+            OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
-                //Task.Run(() => DSRPorter_MSB()), // Done
-                /*
-                // temporarily disables for faster testing
+                Task.Run(() => DSRPorter_MSB()), // Done
                 Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
@@ -1105,14 +1118,13 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // TODO: make sure these actually work.
-                */
+                //
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
-                //Task.Run(() => DSRPorter_GameParam()), // Done
-                
+                Task.Run(() => DSRPorter_GameParam()), // Done
                 Task.Run(() => DSRPorter_DrawParam()), // Done, may need more manual adjustments. Do in-game testing.
-                
-                //Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
+                //
+                Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
@@ -1129,7 +1141,6 @@ namespace DSRPorter
                 }
             }
             
-            OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             LogUnportedFiles();
 
             File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
