@@ -837,8 +837,15 @@ namespace DSRPorter
                     BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
                     if (file_new == null)
                     {
-                        OutputLog.Add($"Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
-                        continue;
+                        if (_is_SOTE && file_old.Name.Contains("o6010"))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            OutputLog.Add($"Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
+                            continue;
+                        }
                     }
                     var modifiedBND = BND3.Read(file_old.Bytes);
                     ModifyEntityBND(modifiedBND, BND3.Read(file_new.Bytes));
@@ -1064,18 +1071,20 @@ namespace DSRPorter
                 {
                     _objsToPort.Add(scaledObj.NewModelName);
                 }
+                OutputLog.Add($@"Adding self-contained textures to pre-scaled SOTE objects");
             }
 
+            OutputLog.Add($@"Adding self-contained textures to objects added to new maps");
             foreach (var obj in _objsToPort)
             {
                 texPorter.SelfContainTextures_Objbnd(obj);
                 if (_is_SOTE)
                 {
-                    OutputLog.Add($@"Object was present to a new map or is a SOTE scaled object, added self-contained textures: {obj}");
+                    OutputLog.Add($@"Added self-contained textures: {obj}");
                 }
                 else
                 {
-                    OutputLog.Add($@"Object was present in a new map, added self-contained textures: {obj}");
+                    OutputLog.Add($@"Added self-contained textures: {obj}");
                 }
                 _progressBar.Invoke(() => _progressBar.Increment(1 + 300 / _objsToPort.Count));
             }
@@ -1140,7 +1149,20 @@ namespace DSRPorter
                     }
                 }
             }
-            
+
+            if (_is_SOTE)
+            {
+                string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input manual overwrite";
+                foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))
+                {
+                    var targetPath = $@"{DataPath_Output}\{path.Replace(manualPath, "")}";
+                    string fileName = Path.GetFileName(path);
+                    Directory.CreateDirectory(targetPath.Replace(fileName, ""));
+                    File.Copy(path, targetPath, true);
+                    OutputLog.Add($"Ported manually prepared file {fileName}");
+                }
+            }
+
             LogUnportedFiles();
 
             File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
