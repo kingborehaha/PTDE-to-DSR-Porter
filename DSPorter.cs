@@ -321,7 +321,8 @@ namespace DSRPorter
                             // Add pre-scaled object to MSB models.
                             MSB1.Model.Object model = new()
                             {
-                                Name = newModelName
+                                Name = newModelName,
+                                SibPath = $@"N:\FRPG\data\Model\obj\{scaledObj.NewModelName}\sib\{scaledObj.NewModelName}.sib"
                             };
                             msb.Models.Objects.Add(model);
                         }
@@ -329,18 +330,6 @@ namespace DSRPorter
                     }
                     */
                 }
-                /*
-                // for bug testing. doesn't seem to matter in-game (?)
-                foreach (var model in msb.Models.Objects.ToArray())
-                {
-                    if (msb.Parts.Objects.Find(e => e.ModelName == model.Name) == null
-                        && msb.Parts.DummyObjects.Find(e => e.ModelName == model.Name) == null)
-                    {
-                        msb.Models.Objects.Remove(model);
-                    }
-                }
-                msb.Models.Objects = msb.Models.Objects.OrderBy(e => e.Name.Remove(0)).ToList();
-                */
                 foreach (var p in msb.Parts.Collisions)
                 {
                     if (true)
@@ -1180,7 +1169,6 @@ namespace DSRPorter
             {
                 
                 Task.Run(() => DSRPorter_MSB()), // Done
-                /*
                 Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
@@ -1200,7 +1188,6 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_DrawParam()), // Done, may need more manual adjustments. Do in-game testing.
                 //
                 Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
-                */
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
