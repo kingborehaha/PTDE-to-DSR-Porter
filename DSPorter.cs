@@ -282,7 +282,8 @@ namespace DSRPorter
                                 // Add pre-scaled object to MSB models.
                                 MSB1.Model.Object model = new()
                                 {
-                                    Name = scaledObj.NewModelName
+                                    Name = scaledObj.NewModelName,
+                                    SibPath = $@"N:\FRPG\data\Model\obj\{scaledObj.NewModelName}\sib\{scaledObj.NewModelName}.sib"
                                 };
                                 msb.Models.Objects.Add(model);
                             }
