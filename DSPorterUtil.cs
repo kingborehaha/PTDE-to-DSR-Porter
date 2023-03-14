@@ -38,36 +38,69 @@ namespace DSRPorter
             }
             return;
         }
-        private static void OffsetParamRow(PARAM.Row row_old, PARAM.Row row_new, PARAM.Row row_vanilla)
-        {
-            for (var iField = 0; iField < row_old.Cells.Count; iField++)
-            {
-                var oldCell = row_old.Cells[iField];
-                var newCell = row_new.Cells[iField];
-                var vanillaCell = row_vanilla.Cells[iField];
 
-                if (newCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
+        private static void OffsetDrawParamRow(PARAM.Row row_ptde_modded, PARAM.Row row_dsr, PARAM.Row row_vanilla)
+        {
+            for (var iField = 0; iField < row_ptde_modded.Cells.Count; iField++)
+            {
+                var ptdeVanillaCell = row_vanilla.Cells[iField];
+                var ptdeModdedCell = row_ptde_modded.Cells[iField];
+                var dsrCell = row_dsr.Cells[iField];
+
+                if (dsrCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
                 {
                     // Skip over any padding.
                     continue;
                 }
 
-                if (oldCell.Def.InternalName != newCell.Def.InternalName)
+                if (ptdeModdedCell.Def.InternalName != dsrCell.Def.InternalName)
                 {
                     // Fields don't match, this is a mixed-def check. Try to find correct field to compare (if it exists)
-                    newCell = row_new.Cells.FirstOrDefault(c => c.Def.InternalName == oldCell.Def.InternalName);
-                    if (newCell == null)
+                    dsrCell = row_dsr.Cells.FirstOrDefault(c => c.Def.InternalName == ptdeModdedCell.Def.InternalName);
+                    if (dsrCell == null)
                     {
-                        throw new Exception($"Couldn't find {oldCell.Def.InternalName} in new paramdef. Modify Paramdef field names to fix.");
+                        throw new Exception($"Couldn't find {ptdeModdedCell.Def.InternalName} in new paramdef. Modify Paramdef field names to fix.");
                     }
                 }
-                dynamic offsetVal = (dynamic)oldCell.Value - (dynamic)vanillaCell.Value;
 
-                /*
-                if (offsetVal != 0)
-                    Debugger.Break();
-                */
-                newCell.Value = (dynamic)newCell.Value + offsetVal;
+                if ((dynamic)ptdeModdedCell.Value != (dynamic)ptdeVanillaCell.Value)
+                {
+                    dynamic dsrVal = dsrCell.Value;
+                    dynamic vanillaVal = ptdeVanillaCell.Value;
+                    dynamic moddedVal = ptdeModdedCell.Value;
+
+                    if (Is_SOTE && dsrCell.Def.InternalName.ToLower().Contains("dwindle"))
+                    {
+                        dsrCell.Value = moddedVal;
+                        continue;
+                    }
+
+                    dynamic offsetMult;
+                    if (vanillaVal == 0)
+                    {
+                        if (dsrVal == 0)
+                        {
+                            offsetMult = 1;
+                        }
+                        else
+                        {
+                            dynamic offsetAdd = dsrVal - vanillaVal;
+                            dsrCell.Value = moddedVal + offsetAdd;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        offsetMult = dsrVal / vanillaVal;
+                    }
+
+                    dsrCell.Value = (dynamic)(moddedVal * offsetMult);
+                    if (offsetMult != 1)
+                    {
+                        { }
+                    }
+
+                }
             }
             return;
         }

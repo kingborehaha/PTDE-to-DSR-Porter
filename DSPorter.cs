@@ -23,10 +23,8 @@ using SoulsFormatsExtensions;
     * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
 
 //// SOTE stuff
- EXE
- * Done, need to manually move DLL to output.
- menu textures
- * Merging done, need to manually move files from "Y:\Projects Y\Modding\DSR\DSR port modding\menu merged\menu in progress" to output.
+ Font
+ * Not working, fix that
  FFX
  * There are some DSR FFX I don't want to replace, and some FFX I want the PTDE versions of.
     * Maybe do a diff between vanilla PTDE and SOTE to see which FFX I modified, and include those (sans crystal FFX)
@@ -43,10 +41,11 @@ using SoulsFormatsExtensions;
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit if i get crashes.
  * make sure PTDE global event lua works fine (do a sunlight refight, fight ceaseless)
+ ANIBND
+ * one particular concern: sanctuary guardian and its duplicate TAE or whatever the hell it was. how is that being handled?
  chrBNDs
- * implemented but untested
  * titanite demon (hkxpw) and black knight/boc tree (flver) should work with current porting. double check though
-    
+ scaled object notes  
     m10_01_00_00 - o1305 | o1305_02 - <1.08, 1, 1> // Added this one in 2.0.1 (watchtower basement door to basin)
 
     m10_01_00_00 - o1413 | o1201_n_blocker_1 - <1, 1.5, 1>
@@ -113,9 +112,11 @@ namespace DSRPorter
 
         public ConcurrentBag<string> OutputLog = new();
 
-        private readonly bool _enableScaledObjectAdjustments = false;
-        private readonly bool _is_SOTE = true;
-        private readonly bool _useFfxWhitelist = false; // If true, only FFX in the whitelist will be ported to DSR. All other non-new FFX will be DSR.
+        //public Dictionary<string, List<string>> ObjMapDictionary = new(); // Stores object in map info for the purpose of texture porting
+
+        public const bool EnableScaledObjectAdjustments = false;
+        public const bool Is_SOTE = true;
+        public const bool UseFfxWhitelist = false; // If true, only FFX in the whitelist will be ported to DSR. All other non-new FFX will be DSR.
 
         private readonly List<long> _ffxWhitelist = new()
         {
@@ -143,9 +144,11 @@ namespace DSRPorter
             90018, // bonfire
             90019, // bonfire
             90020, // bonfire
-            // TODO
-            // bonfire FFX
-            // stray demon/firesage demon AOE ?
+            // TODO WHITELIST
+            // * modified/custom FFX (scan vanilla for them)
+            // * bonfire FFX
+            // TODO BLACKLIST
+            // * crystal effects
             */
         };
 
@@ -233,7 +236,7 @@ namespace DSRPorter
                 {
                     if (msb_vanilla.Models.Objects.Find(e => e.Name == model.Name) == null)
                     {
-                        if (_is_SOTE)
+                        if (Is_SOTE)
                         {
                             if (model.Name.Contains("4203"))
                             {
@@ -251,7 +254,7 @@ namespace DSRPorter
                     }
                     else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                     {
-                        if (!_is_SOTE)
+                        if (!Is_SOTE)
                         {
                             OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
                             p.Scale = Vector3.One;
@@ -324,7 +327,19 @@ namespace DSRPorter
                         p.Scale = Vector3.One;
                     }
                     */
-        }
+                }
+                /*
+                // for bug testing. doesn't seem to matter in-game (?)
+                foreach (var model in msb.Models.Objects.ToArray())
+                {
+                    if (msb.Parts.Objects.Find(e => e.ModelName == model.Name) == null
+                        && msb.Parts.DummyObjects.Find(e => e.ModelName == model.Name) == null)
+                    {
+                        msb.Models.Objects.Remove(model);
+                    }
+                }
+                msb.Models.Objects = msb.Models.Objects.OrderBy(e => e.Name.Remove(0)).ToList();
+                */
                 foreach (var p in msb.Parts.Collisions)
                 {
                     if (true)
@@ -403,7 +418,7 @@ namespace DSRPorter
                     if (file_new != null)
                     {
                         // DSR has this FFX already.
-                        if (_useFfxWhitelist)
+                        if (UseFfxWhitelist)
                         {
                             if (_ffxWhitelist.Contains(GetFFXId(file_new.Name)))
                             {
@@ -602,7 +617,7 @@ namespace DSRPorter
                         {
                             // DSR defs can't handle this, but it's all default values in PTDE so I doubt it matters
                         }
-                        else if (_is_SOTE
+                        else if (Is_SOTE
                             && (item.Key.StartsWith("s18_1") || item.Key.StartsWith("m18_1")))
                         {
                             // Those drawparams I added to SOTE but never used
@@ -643,10 +658,11 @@ namespace DSRPorter
                     }
 
                     param_new_target.Rows.Clear();
+                    bool orderRows = false;
 
                     if (param_old.ParamType == "OBJECT_PARAM_ST")
                     {
-                        if (_enableScaledObjectAdjustments)
+                        if (EnableScaledObjectAdjustments)
                         {
                             foreach (var scaledObj in _scaledObjects)
                             {
@@ -656,8 +672,9 @@ namespace DSRPorter
                                 param_new_target.Rows.Add(newObjRow);
                             }
                         }
-                        else if (_is_SOTE)
+                        else if (Is_SOTE)
                         {
+                            orderRows = true;
                             foreach (var scaledObj in SOTEScaledObjectList)
                             {
                                 var OGRow = param_old[scaledObj.OGModelID];
@@ -669,7 +686,35 @@ namespace DSRPorter
 #endif
                                     //throw new Exception($"Couldn't find object param row for {scaledObj.OGModelName}}");
                                     continue;
-            }
+                                }
+                                PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
+                                TransferParamRow(OGRow, newObjRow);
+                                param_new_target.Rows.Add(newObjRow);
+                            }
+                        }
+                    }
+                    else if (param_old.ParamType == "OBJ_ACT_PARAM_ST")
+                    {
+                        if (EnableScaledObjectAdjustments)
+                        {
+                            foreach (var scaledObj in _scaledObjects)
+                            {
+                                var OGRow = param_old[scaledObj.OGModelID];
+                                PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
+                                TransferParamRow(OGRow, newObjRow);
+                                param_new_target.Rows.Add(newObjRow);
+                            }
+                        }
+                        else if (Is_SOTE)
+                        {
+                            orderRows = true;
+                            foreach (var scaledObj in SOTEScaledObjectList)
+                            {
+                                var OGRow = param_old[scaledObj.OGModelID];
+                                if (OGRow == null)
+                                {
+                                    continue;
+                                }
                                 PARAM.Row newObjRow = new(scaledObj.NewModelID, $"Scaled Object {scaledObj.NewModelName}", param_new_target.AppliedParamdef);
                                 TransferParamRow(OGRow, newObjRow);
                                 param_new_target.Rows.Add(newObjRow);
@@ -736,7 +781,7 @@ namespace DSRPorter
                             }
                             else
                             {
-                                OffsetParamRow(row_old, row_new, row_vanilla);
+                                OffsetDrawParamRow(row_old, row_new, row_vanilla);
                                 param_new_target.Rows.Add(row_new);
                             }
                         }
@@ -746,6 +791,8 @@ namespace DSRPorter
                             param_new_target.Rows.Add(row_target);
                         }
                     }
+                    if (orderRows)
+                        param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
                 });
 
                 // Save each param, then the parambnd
@@ -827,19 +874,25 @@ namespace DSRPorter
                     bnd_old.Files.Remove(file_old);
                     continue;
                 }
-                else
+                if (file_old.Name.ToLower().EndsWith(".chrtpfbhd"))
                 {
-                    file_old.Name = file_old.Name.Replace("win32", "x64");
+                    // TODO: to properly support this, scan to see if there was a modified chrtpfBDT in the chr folder.
+                    // * If the BDT was unmodified, just use DSR BHD.
+                    // * if the BDT was modified, I need to support that with a new function & probably use the moddedPTDE bhd.
+                    OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it.).");
+                    bnd_old.Files.Remove(file_old);
+                    continue;
                 }
+                file_old.Name = file_old.Name.Replace("win32", "x64");
 
                 if (BND3.Is(file_old.Bytes))
                 {
                     BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
                     if (file_new == null)
                     {
-                        if (_is_SOTE && file_old.Name.Contains("o6010"))
+                        if (Is_SOTE && file_old.Name.Contains("6010"))
                         {
-                            continue;
+                            return;
                         }
                         else
                         {
@@ -862,6 +915,16 @@ namespace DSRPorter
                         file_new.ID++;
                     }
                     bnd_old.Files.Add(file_new);
+                    continue;
+                }
+                if (file_new.Name.ToLower().EndsWith(".chrtpfbhd"))
+                {
+                    while (bnd_old.Files.Find(f => f.ID == file_new.ID) != null)
+                    {
+                        file_new.ID++;
+                    }
+                    bnd_old.Files.Add(file_new);
+                    continue;
                 }
             }
 
@@ -1065,7 +1128,7 @@ namespace DSRPorter
 
             TexturePorter texPorter = new(this);
 
-            if (_is_SOTE)
+            if (Is_SOTE)
             {
                 foreach (var scaledObj in SOTEScaledObjectList)
                 {
@@ -1078,7 +1141,7 @@ namespace DSRPorter
             foreach (var obj in _objsToPort)
             {
                 texPorter.SelfContainTextures_Objbnd(obj);
-                if (_is_SOTE)
+                if (Is_SOTE)
                 {
                     OutputLog.Add($@"Added self-contained textures: {obj}");
                 }
@@ -1114,7 +1177,9 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
+                
                 Task.Run(() => DSRPorter_MSB()), // Done
+                /*
                 Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
@@ -1134,6 +1199,7 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_DrawParam()), // Done, may need more manual adjustments. Do in-game testing.
                 //
                 Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
+                */
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
@@ -1150,9 +1216,9 @@ namespace DSRPorter
                 }
             }
 
-            if (_is_SOTE)
+            if (Is_SOTE)
             {
-                string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input manual overwrite";
+                string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
                 foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))
                 {
                     var targetPath = $@"{DataPath_Output}\{path.Replace(manualPath, "")}";
