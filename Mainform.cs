@@ -34,16 +34,16 @@ namespace DSRPorter
         private void Button_Activate_Click(object sender, EventArgs e)
         {
             ProgramProgressBar.Value = 0;
-            Task.Run(() => RunProgram());
+            RunProgram().Wait();
         }
 
-        private void RunProgram()
+        private async Task RunProgram()
         {
             Button_Activate.Invoke(() => Button_Activate.Enabled = false);
 
             DSPorter porter = new(ProgramProgressBar);
             porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
-
+            
             Button_Activate.Invoke(() => Button_Activate.Enabled = true);
             
             GC.Collect();
