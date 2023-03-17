@@ -12,81 +12,33 @@ using SoulsFormatsExtensions;
 /*
  * TODO
 
- THINGS THAT NEED TO BE CONVEYED IN EDITOR
+ THINGS THAT NEED TO BE CONVEYED TO USERS
  * Porting DrawParam should be done in conjunction with MSB porting due to DSR's new IDs
  * modified lua must be decompiled since 32 bit lua can't be decompiled (and thus converted)
     * any compiled lua will just be replaced with DSR lua, unless the DSR lua cannot be found in which case program will complain.
- * scaled collision in MSB (maybe program should also report this, with vanilla ones blacklisted)
-
- msb
- * Scaled objects.
-    * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
+ * scaled collision in MSB
 
 //// SOTE stuff
- Font
- * Not working, fix that
  FFX
  * There are some DSR FFX I don't want to replace, and some FFX I want the PTDE versions of.
     * Maybe do a diff between vanilla PTDE and SOTE to see which FFX I modified, and include those (sans crystal FFX)
     * Then do a playthrough with debug on and if I see any FFX I hate (chaos FFX from ceaseless, other chaos boys come to mind) then I add it to a list which program reads and transfers when present.
     * Use DSR crystal FFX
     * Use DSR fog gates?
-        * There will be inconsinsistency otherwise, unless i decide to port those exceptions too.
+        * There will be inconsinsistinstinency otherwise, unless i decide to port those exceptions too.
         * SOTE fog gates also look pretty shitty too so maybe just go with DSR for those and just give up and adjust some DSR ffx for whatever I need
- OBJ
- * see what changes i made to these objects in devlogs. root seal is especially concerning, dont remember which new file i made for that (TAE?)
-    * re: root seals. i scaled all of these, so changes would need to be made to scaled dupes
-    * IMPORTANT: scaled objects in DSR have NO COLLISION!! this is very important!!!
-    * scaled objects   
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit if i get crashes.
  * make sure PTDE global event lua works fine (do a sunlight refight, fight ceaseless)
- ANIBND
- * one particular concern: sanctuary guardian and its duplicate TAE or whatever the hell it was. how is that being handled?
- chrBNDs
- * titanite demon (hkxpw) and black knight/boc tree (flver) should work with current porting. double check though
- scaled object notes  
-    m10_01_00_00 - o1305 | o1305_02 - <1.08, 1, 1> // Added this one in 2.0.1 (watchtower basement door to basin)
-
-    m10_01_00_00 - o1413 | o1201_n_blocker_1 - <1, 1.5, 1>
-    m10_01_00_00 - o1413 | o1201_n_blocker_2 - <1, 2, 1>
-    m10_01_00_00 - o1413 | o1201_n_blocker_3 - <1, 2, 1> // dupe
-    m10_01_00_00 - o1317 | o1317_0001 - <1.05, 1, 1>
-    m12_00_00_01 - o1312 | o_n_door_0001 - <1.36, 1.83, 0.95>
-    m12_01_00_00 - o8300 | o_n_NGplus_1 - <0.5, 0.5, 0.5>
-    m12_01_00_00 - o2403 | o_n_staterefresh - <1.5, 1.5, 1.5>
-    m12_01_00_00 - o3010 | o_n_hurtstone - <0.5, 0.5, 0.5>
-    m13_02_00_00 - o1419 | o_n_blocker_ramp - <0.5, 1, 1>
-    m14_01_00_00 - o4510 | o4510_n_illusorywall_1 - <1.6, 1.6, 1.6>
-    m14_01_00_00 - o4830 | o_n_turret_obj - <16, 16, 16>
-    m14_01_00_00 - o4830 | o_n_turret_obj_0001 - <16, 16, 16> // dupe
-    m15_00_00_00 - o8540 | o_n_blocker_2 - <2, 2, 2>
-    m16_00_00_00 - o6700 | o_n_OneWayWall - <2.3, 1.5, 1>
-    m18_00_00_00 - o8051 | o8051_n_fog_eclipse_2.1 - <1, 1, 4>
-    m18_00_00_00 - o8300 | o8300_n - <0.25, 0.15, 0.25>
-    // BOC root seals
-    m14_01_00_00 - o4610 | o4610_0000 - <0.75, 0.75, 0.75>
-    m14_01_00_00 - o4610 | o4610_0001 - <0.75, 0.75, 0.75> // dupe
-    m14_01_00_00 - o4610 | o4610_n_tendril_0001 - <0.75, 0.75, 0.75> // dupe
-    m14_01_00_00 - o4610 | o4610_n_tendril_0002 - <0.75, 0.75, 0.75> // dupe
-    m14_01_00_00 - o4610 | o4610_n_tendril_0003 - <0.75, 0.75, 0.75> // dupe
-    // Ceaseless arena gates
-    m14_01_00_00 - o4700 | o4700_n_blocker_1 - <1.1, 1.2, 1.1>
-    m14_01_00_00 - o4700 | o4700_n_blocker_2 - <1.1, 1.2, 1.1> // dupe
-
-    //these are fine:
-        //vanilla
-        m10_00_00_00 - o1057 | o1057_01 - <1.4999995, 1.5, 1.4999995>
-        m10_00_00_00 - o1057 | o1057_04 - <0.8, 0.8, 0.8>
-        m10_00_00_00 - o1057 | o1057_08 - <1.4999995, 1.5, 1.4999995>
-        m10_00_00_00 - o1057 | o1057_12 - <1.2, 0.7, 0.7>
-        m10_00_00_00 - o1057 | o1057_16 - <0.89999974, 0.9, 0.89999974>
-        m10_00_00_00 - o1057 | o1057_17 - <0.8, 0.8, 0.8>
-        m10_00_00_00 - o1057 | o1057_20 - <0.7999998, 0.8, 0.7999998>
-        m10_00_00_00 - o1057 | o1057_22 - <2, 0.8, 0.5>
-        // snuggly's nest
-        m18_01_00_00 - o8550 | o8550_0001 - <0.458642, 0.458642, 0.458642>
-
+ manual TODO
+    breakobjs
+        scaled objects mean that i probably need to regen breakobj
+    drawparam
+        some are jank
+            m14_01
+                pathway from quelaag's domain to demon ruins is very off. did DSR adjust this already?
+                I missed some branches in lost izalith, need to adjust them in PTDE first then I can re-port them.
+    
 // Misc
 Low priority
  * Option to keep DSR drawgroup improvements?
@@ -164,25 +116,6 @@ namespace DSRPorter
 
         public readonly List<ScaledObject> SOTEScaledObjectList = new()
         {
-            /*    
-            o1413 -> o1422.objbnd.dcx
-            o1413 -> o1423.objbnd.dcx
-            o1312 -> o1324.objbnd.dcx
-            o8300 -> o8301.objbnd.dcx
-            o2403 -> o2404.objbnd.dcx
-            o3010 -> o3012.objbnd.dcx
-            o1419 -> o1424.objbnd.dcx
-            o4510 -> o4511.objbnd.dcx
-            o4830 -> o4831.objbnd.dcx
-            o8540 -> o8545.objbnd.dcx
-            o6700 -> o6701.objbnd.dcx
-            o8051 -> o8052.objbnd.dcx
-            o8300 -> o8302.objbnd.dcx
-            o4610 -> o4612.objbnd.dcx
-            o4700 -> o4702.objbnd.dcx
-            o1317 -> o1325.objbnd.dcx
-            o1305 -> o1307.objbnd.dcx
-            */
             new ScaledObject("o1413", "o1422", new Vector3( 1.0f,    1.5f,   1.0f)),
             new ScaledObject("o1413", "o1423", new Vector3( 1.0f,    2.0f,   1.0f)),
             new ScaledObject("o1312", "o1324", new Vector3( 1.36f,   1.83f,  0.95f)),
@@ -1139,7 +1072,7 @@ namespace DSRPorter
                 {
                     OutputLog.Add($@"Added self-contained textures: {obj}");
                 }
-                _progressBar.Invoke(() => _progressBar.Increment(1 + 300 / _objsToPort.Count));
+                _progressBar.Invoke(() => _progressBar.Increment(1 + 200 / _objsToPort.Count));
             }
         }
 
@@ -1154,9 +1087,16 @@ namespace DSRPorter
                 }
                 if (result == DialogResult.Yes)
                 {
+#if !DEBUG
+                    foreach (var file in Directory.GetFiles(ptdePath_Mod))
+                    {
+                        File.Delete(file);
+                    }
+#else
                     Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
                         Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                        Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
+#endif
                 }
             }
             Directory.CreateDirectory(DataPath_Output);
@@ -1173,21 +1113,21 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_ANIBND()), // Done
-                Task.Run(() => DSRPorter_CHRBND()), // Untested
+                Task.Run(() => DSRPorter_CHRBND()), // Done
                 Task.Run(() => DSRPorter_OBJBND()), // Done
-                Task.Run(() => DSRPorter_MSGBND()), // Done? Make sure there isn't any missing <?hotkey?>'s still.
+                Task.Run(() => DSRPorter_MSGBND()), // Done
                 Task.Run(() => DSRPorter_LUABND()), // Done? Needs memory limit crash testing and global event testing.
 
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
-                Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // TODO: make sure these actually work.
+                Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
                 //
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
-                Task.Run(() => DSRPorter_DrawParam()), // Done, may need more manual adjustments. Do in-game testing.
+                Task.Run(() => DSRPorter_DrawParam()), // Done, needs manual adjustments for SOTE.
                 //
-                Task.Run(() => DSRPorter_ObjTextures()) // Done, may need more manual adjustments. Do in-game testing.
+                Task.Run(() => DSRPorter_ObjTextures()) // Done
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
@@ -1198,7 +1138,7 @@ namespace DSRPorter
                 {
                     if (task.IsCompleted)
                     {
-                        _progressBar.Invoke(() => _progressBar.Increment(1 + 700 / taskCount));
+                        _progressBar.Invoke(() => _progressBar.Increment(1 + 600 / taskCount));
                         taskList.Remove(task);
                     }
                 }
