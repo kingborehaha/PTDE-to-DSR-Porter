@@ -1080,7 +1080,11 @@ namespace DSRPorter
         {
             if (Directory.Exists(DataPath_Output))
             {
-                var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNo);
+                var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNoCancel);
+                if (result == DialogResult.Cancel)
+                {
+                    return;
+                }
                 if (result == DialogResult.Yes)
                 {
 #if !DEBUG
@@ -1103,6 +1107,8 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
+                
+                Task.Run(() => DSRPorter_MSB()), // Done
                 Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
@@ -1132,10 +1138,6 @@ namespace DSRPorter
                 {
                     if (task.IsCompleted)
                     {
-                        if (task.Exception != null)
-                        {
-                            throw task.Exception;
-                        }
                         _progressBar.Invoke(() => _progressBar.Increment(1 + 600 / taskCount));
                         taskList.Remove(task);
                     }
