@@ -125,7 +125,6 @@ namespace DSRPorter
             public string OGModelName = "";
             public string NewModelName = "";
             public Vector3 Scaling;
-
             public int OGModelID => int.Parse(OGModelName.Replace("o", ""));
             public int NewModelID => int.Parse(NewModelName.Replace("o", ""));
 

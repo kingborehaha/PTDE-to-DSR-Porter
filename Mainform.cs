@@ -31,28 +31,32 @@ namespace DSRPorter
             return;
         }
 
-        private void Button_Activate_Click(object sender, EventArgs e)
+        private async void Button_Activate_Click(object sender, EventArgs e)
         {
+            // Non-debug exceptions won't get caught because of the async void
             ProgramProgressBar.Value = 0;
-            Task.Run(() => RunProgram());
+            RunProgram(); 
         }
 
-        private void RunProgram()
+        private async Task RunProgram()
         {
-            Button_Activate.Invoke(() => Button_Activate.Enabled = false);
+            await Task.Run(() =>
+            {
+                Button_Activate.Invoke(() => Button_Activate.Enabled = false);
 
-            DSPorter porter = new(ProgramProgressBar);
-            porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
+                DSPorter porter = new(ProgramProgressBar);
+                porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
 
-            Button_Activate.Invoke(() => Button_Activate.Enabled = true);
-            
-            GC.Collect();
+                Button_Activate.Invoke(() => Button_Activate.Enabled = true);
 
-            System.Media.SystemSounds.Exclamation.Play();
+                GC.Collect();
 
-            var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
-            if (result == DialogResult.Yes)
-                Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output file
+                System.Media.SystemSounds.Exclamation.Play();
+
+                var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
+                if (result == DialogResult.Yes)
+                    Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output file
+            });
         }
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)

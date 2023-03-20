@@ -29,7 +29,6 @@ using SoulsFormatsExtensions;
         * SOTE fog gates also look pretty shitty too so maybe just go with DSR for those and just give up and adjust some DSR ffx for whatever I need
  LUA
  * need to check if game has enough memory for all that. May need to compile it to 64 bit if i get crashes.
- * make sure PTDE global event lua works fine (do a sunlight refight, fight ceaseless)
  manual TODO
     breakobjs
         scaled objects mean that i probably need to regen breakobj
@@ -969,8 +968,9 @@ namespace DSRPorter
                             BinderFile? file_new = files_new.Find(e => e.Name == file_old.Name);
                             if (file_new == null)
                             {
-                                MessageBox.Show($"\"{file_old.Name}\" is both compiled and cannot be found in DSR data" +
-                                    $"\n\nIf this is a new lua file, please provide decompiled lua instead. Otherwise, fix DSR version being unfindable (name must be identical).", "Error");
+                                MessageBox.Show($"Error: \"{file_old.Name}\" is both compiled and cannot be found in DSR data" +
+                                    $"\n\nIf this is a new lua file, please provide decompiled lua instead. Otherwise, fix DSR version being unfindable (name must be identical)."
+                                    , "Error: LuaBND porting cancelled", MessageBoxButtons.OK);
                                 return;
                             }
                             file_old.Bytes = file_new.Bytes;
@@ -1072,7 +1072,7 @@ namespace DSRPorter
                 {
                     OutputLog.Add($@"Added self-contained textures: {obj}");
                 }
-                _progressBar.Invoke(() => _progressBar.Increment(1 + 200 / _objsToPort.Count));
+                _progressBar.Invoke(() => _progressBar.Increment(1 + 280 / _objsToPort.Count));
             }
         }
 
@@ -1080,23 +1080,22 @@ namespace DSRPorter
         {
             if (Directory.Exists(DataPath_Output))
             {
-                var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNoCancel);
-                if (result == DialogResult.Cancel)
-                {
-                    return;
-                }
+                var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNo);
                 if (result == DialogResult.Yes)
                 {
-#if !DEBUG
-                    foreach (var file in Directory.GetFiles(ptdePath_Mod))
+                    result = MessageBox.Show("Send to recycle bin?\n", "Recycle vs delete", MessageBoxButtons.YesNo);
+                    if (result == DialogResult.Yes)
                     {
-                        File.Delete(file);
+                        Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                            Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                            Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
                     }
-#else
-                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
-                        Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                        Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
-#endif
+                    else
+                    {
+                        Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                            Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                            Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
+                    }
                 }
             }
             Directory.CreateDirectory(DataPath_Output);
@@ -1138,7 +1137,11 @@ namespace DSRPorter
                 {
                     if (task.IsCompleted)
                     {
-                        _progressBar.Invoke(() => _progressBar.Increment(1 + 600 / taskCount));
+                        if (task.Exception != null)
+                        {
+                            throw task.Exception;
+                        }
+                        _progressBar.Invoke(() => _progressBar.Increment(1 + 700 / taskCount));
                         taskList.Remove(task);
                     }
                 }
@@ -1154,6 +1157,11 @@ namespace DSRPorter
                     Directory.CreateDirectory(targetPath.Replace(fileName, ""));
                     File.Copy(path, targetPath, true);
                     OutputLog.Add($"Ported manually prepared file {fileName}");
+                }
+                foreach (var obj in SOTEScaledObjectList)
+                {
+                    if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                        MessageBox.Show($"Couldn't find scaled object {obj.NewModelName} in the output folder!");
                 }
             }
 
