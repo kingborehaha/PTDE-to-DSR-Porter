@@ -71,9 +71,6 @@ namespace DSRPorter
 
         private readonly List<long> _ffxWhitelist = new()
         {
-            // flaw with this idea: FFX I modified that I actually want to keep, like projectile life changes.
-                // Maybe I oughta compare PTDE vanilla to figure out which ones I changed?
-            /*
             90000, // bonfire
             90001, // bonfire
             90002, // bonfire
@@ -95,12 +92,12 @@ namespace DSRPorter
             90018, // bonfire
             90019, // bonfire
             90020, // bonfire
-            // TODO WHITELIST
-            // * modified/custom FFX (scan vanilla for them)
-            // * bonfire FFX
+            
+        };
+        private readonly List<long> _ffxBlacklist = new()
+        {
             // TODO BLACKLIST
             // * crystal effects
-            */
         };
 
         private readonly bool _useDSRToneMapBankValues = true;
@@ -319,56 +316,88 @@ namespace DSRPorter
 
             foreach (var path in paths)
             {
-                var bnd_old = BND3.Read(path);
-                var bnd_new = BND3.Read(path.Replace(DataPath_PTDE_Mod, DataPath_DSR) + ".dcx");
+                var bnd_PTDE_modded = BND3.Read(path);
+                var bnd_PTDE_vanilla = BND3.Read(path.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla));
+                var bnd_DSR_target = BND3.Read(path.Replace(DataPath_PTDE_Mod, DataPath_DSR) + ".dcx");
 
-                foreach (var file_old in bnd_old.Files)
+                foreach (var file_PTDE_modded in bnd_PTDE_modded.Files)
                 {
-                    if (FXR1.Is(file_old.Bytes))
+                    bool is_ffx = false;
+                    if (FXR1.Is(file_PTDE_modded.Bytes))
                     {
-                        if (IsCoreFFX(file_old))
+                        is_ffx = true;
+                    }
+                    var file_PTDE_vanilla = bnd_PTDE_vanilla.Files.Find(f => f.Name == file_PTDE_modded.Name);
+
+
+                    if (file_PTDE_vanilla != null)
+                    {
+                        // File exists in vanilla, check if it is allowed to be ported.
+
+                        // Check if it was modified
+                        if (file_PTDE_vanilla.Bytes.SequenceEqual(file_PTDE_modded.Bytes))
+                        {
+                            // File was unmodified
+                            if (is_ffx)
+                            {
+                                long ffxID = GetFFXId(file_PTDE_modded.Name));
+                                if (!_ffxWhitelist.Contains(ffxID))
+                                {
+                                    // Not present in whitelist, skip this FFX.
+                                    continue;
+                                }
+                                if (_ffxBlacklist.Contains(ffxID))
+                                {
+                                    // Present in blacklist, skip this FFX.
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                // Skip any non-FFX files.
+                                continue;
+                            }
+                        }
+                    }
+
+                    // File is permitted to be ported to DSR
+
+                    if (is_ffx)
+                    {
+                        if (IsCoreFFX(file_PTDE_modded))
                         {
                             // Core FFX, must use base DSR version or things will break.
                             continue;
                         }
 
-                        FXR1 ffx_old = FXR1.Read(file_old.Bytes);
-                        ffx_old.Wide = true;
-                        file_old.Bytes = ffx_old.Write();
+                        FXR1 ffx_PTDE_modded = FXR1.Read(file_PTDE_modded.Bytes);
+
+                        // Convert to DSR
+                        ffx_PTDE_modded.Wide = true;
+                        file_PTDE_modded.Bytes = ffx_PTDE_modded.Write();
                     }
 
-                    file_old.Name = file_old.Name.Replace("win32", "x64");
-                    var file_new = bnd_new.Files.Find(f => f.Name == file_old.Name);
+                    file_PTDE_modded.Name = file_PTDE_modded.Name.Replace("win32", "x64");
+                    var file_dsr_target = bnd_DSR_target.Files.Find(f => f.Name == file_PTDE_modded.Name);
 
-                    if (file_new != null)
+                    if (file_dsr_target != null)
                     {
                         // DSR has this FFX already.
-                        if (UseFfxWhitelist)
-                        {
-                            if (_ffxWhitelist.Contains(GetFFXId(file_new.Name)))
-                            {
-                                Debugger.Break();
-                                file_new.Bytes = file_old.Bytes;
-                            }
-                        }
-                        else
-                        {
-                            file_new.Bytes = file_old.Bytes;
-                        }
+                        file_dsr_target.Bytes = file_PTDE_modded.Bytes;
                     }
                     else
                     {
-                        // DSR doesn't have this FFX, ensure the ID is unused then add it.
-                        while (bnd_new.Files.Find(f => f.ID == file_old.ID) != null)
+                        // DSR doesn't have this FFX, ensure ID is unused then add it.
+                        while (bnd_DSR_target.Files.Find(f => f.ID == file_PTDE_modded.ID) != null)
                         {
-                            file_old.ID++;
+                            file_PTDE_modded.ID++;
                         }
-                        bnd_new.Files.Add(file_old);
+                        bnd_DSR_target.Files.Add(file_PTDE_modded);
                     }
                 }
 
-                bnd_new.Files = bnd_new.Files.OrderBy(e => e.ID).ToList();
-                Util.WritePortedSoulsFile(bnd_new, DataPath_PTDE_Mod, path, CompressionType);
+                bnd_DSR_target.Files = bnd_DSR_target.Files.OrderBy(e => e.ID).ToList();
+                Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_PTDE_Mod, path, CompressionType);
             }
             Debug.WriteLine("Finished: FFX");
             OutputLog.Add($@"Finished: sfx\*.ffxbnd");
