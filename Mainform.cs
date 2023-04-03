@@ -43,13 +43,12 @@ namespace DSRPorter
             await Task.Run(() =>
             {
                 Button_Activate.Invoke(() => Button_Activate.Enabled = false);
-                ProgramProgressBar.Invoke(() => ProgramProgressBar.Style = ProgressBarStyle.Marquee);
 
                 DSPorter porter = new(ProgramProgressBar);
                 porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
 
                 Button_Activate.Invoke(() => Button_Activate.Enabled = true);
-                ProgramProgressBar.Invoke(() => ProgramProgressBar.Style = ProgressBarStyle.Continuous);
+                ProgramProgressBar.Invoke(() => ProgramProgressBar.Value = 0);
 
                 GC.Collect();
 

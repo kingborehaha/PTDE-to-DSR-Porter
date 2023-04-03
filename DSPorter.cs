@@ -96,8 +96,13 @@ namespace DSRPorter
         };
         private readonly List<long> _ffxBlacklist = new()
         {
-            // TODO BLACKLIST
-            // * crystal effects
+            // Crystal effects
+            15291,
+            15293,
+            20269,
+            12714,
+            12711
+            //
         };
 
         private readonly bool _useDSRToneMapBankValues = true;
@@ -340,7 +345,7 @@ namespace DSRPorter
                             // File was unmodified
                             if (is_ffx)
                             {
-                                long ffxID = GetFFXId(file_PTDE_modded.Name));
+                                long ffxID = GetFFXId(file_PTDE_modded.Name);
                                 if (!_ffxWhitelist.Contains(ffxID))
                                 {
                                     // Not present in whitelist, skip this FFX.
@@ -379,11 +384,14 @@ namespace DSRPorter
 
                     file_PTDE_modded.Name = file_PTDE_modded.Name.Replace("win32", "x64");
                     var file_dsr_target = bnd_DSR_target.Files.Find(f => f.Name == file_PTDE_modded.Name);
+                    var dsrBndName = Path.GetFileName($@"{path}.dcx");
+                    var outputName = $"\"{dsrBndName}\\{Path.GetFileName(file_PTDE_modded.Name)}\"";
 
                     if (file_dsr_target != null)
                     {
                         // DSR has this FFX already.
                         file_dsr_target.Bytes = file_PTDE_modded.Bytes;
+                        OutputLog.Add($"FFX: Overwrote FFX file {outputName}");
                     }
                     else
                     {
@@ -393,6 +401,7 @@ namespace DSRPorter
                             file_PTDE_modded.ID++;
                         }
                         bnd_DSR_target.Files.Add(file_PTDE_modded);
+                        OutputLog.Add($"FFX: Added FFX file {outputName}");
                     }
                 }
 
@@ -1210,9 +1219,10 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
+
+                Task.Run(() => DSRPorter_FFX()), // Done
                 
                 Task.Run(() => DSRPorter_MSB()), // Done
-                Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_ANIBND()), // Done
@@ -1233,6 +1243,7 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_GameParam()), // Done
                 Task.Run(() => DSRPorter_DrawParam()), // Done, needs manual adjustments for SOTE.
                 //
+                
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
