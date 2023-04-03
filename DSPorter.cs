@@ -115,15 +115,18 @@ namespace DSRPorter
 
         public readonly List<ScaledObject> SOTEScaledObjectList = new()
         {
-            new ScaledObject("o1413", "o1422", new Vector3( 1.0f,    1.5f,   1.0f)),
-            new ScaledObject("o1413", "o1423", new Vector3( 1.0f,    2.0f,   1.0f)),
+            //new ScaledObject("o1413", "o1422", new Vector3( 1.0f,    1.5f,   1.0f)), // taurus arena blockers. removed in favor of enemy-only collision
+            //new ScaledObject("o1413", "o1423", new Vector3( 1.0f,    2.0f,   1.0f)), // taurus arena blockers. removed in favor of enemy-only collision
             new ScaledObject("o1312", "o1324", new Vector3( 1.36f,   1.83f,  0.95f)),
             new ScaledObject("o8300", "o8301", new Vector3( 0.5f,    0.5f,   0.5f)),
             new ScaledObject("o2403", "o2404", new Vector3( 1.5f,    1.5f,   1.5f)),
             new ScaledObject("o3010", "o3012", new Vector3( 0.5f,    0.5f,   0.5f)),
-            new ScaledObject("o1419", "o1424", new Vector3( 0.5f,    1.0f,   1.0f)),
+            //
+            //new ScaledObject("o1419", "o1424", new Vector3( 0.5f,    1.0f,   1.0f)), // Adjusted due to o1413 removals
+            new ScaledObject("o1419", "o1422", new Vector3( 0.5f,    1.0f,   1.0f)),
+            //
             new ScaledObject("o4510", "o4511", new Vector3( 1.6f,    1.6f,   1.6f)),
-            new ScaledObject("o4830", "o4831", new Vector3(16.0f,   16.0f,  16.0f)),
+            new ScaledObject("o4830", "o4831", new Vector3(16.0f,   16.0f,  16.0f)), // giant demon statue turrets
             new ScaledObject("o8540", "o8545", new Vector3( 2.0f,    2.0f,   2.0f)),
             new ScaledObject("o6700", "o6701", new Vector3( 2.3f,    1.5f,   1.0f)),
             new ScaledObject("o8051", "o8052", new Vector3( 1.0f,    1.0f,   4.0f)),
@@ -646,75 +649,86 @@ namespace DSRPorter
 
                     for (var iRow = 0; iRow < param_old.Rows.Count; iRow++)
                     {
-                        PARAM.Row row_old = param_old.Rows[iRow];
-                        PARAM.Row row_target = new(row_old.ID, row_old.Name, param_new_target.AppliedParamdef);
+                        PARAM.Row row_ptde_modded = param_old.Rows[iRow];
+                        PARAM.Row row_dsr_target = new(row_ptde_modded.ID, row_ptde_modded.Name, param_new_target.AppliedParamdef);
+                        PARAM.Row? row_dsr_vanilla = param_new_target.Rows.Find(e => e.ID == row_ptde_modded.ID);
+                        if (row_dsr_vanilla != null)
+                        {
+                            for (var iCell = 0; iCell < row_dsr_vanilla.Cells.Count; iCell++)
+                            {
+                                row_dsr_target.Cells[iCell].Value = row_dsr_vanilla.Cells[iCell].Value;
+                            }
+                        }
                         if (isDrawParam)
                         {
-                            // debug
-                            /*
-                            PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_old.ID);
-                            for (var iField = 0; iField < row_old.Cells.Count; iField++)
-                            {
-                                var oldCell = row_old.Cells[iField];
-                                var newCell = row_new.Cells[iField];
-
-                                if (oldCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
-                                {
-                                    // Skip over any padding.
-                                    continue;
-                                }
-
-                                if (oldCell.Def.InternalName != newCell.Def.InternalName)
-                                {
-                                    // Fields don't match, this is a mixed-def check. Try to find correct field to compare (if it exists)
-                                    newCell = row_new.Cells.FirstOrDefault(c => c.Def.InternalName == oldCell.Def.InternalName);
-                                    if (newCell == null)
-                                    {
-                                        throw new Exception($"Couldn't find {oldCell.Def.InternalName} in new paramdef. Modify Paramdef field names to fix.");
-                                    }
-                                }
-                                if (newCell.Value.ToString() != oldCell.Value.ToString())
-                                {
-                                    if (newCell.Value.GetType() == typeof(float))
-                                    {
-                                        if (Util.FloatIsEqual((float)oldCell.Value, (float)newCell.Value))
-                                            continue;
-                                        else
-                                        { }
-                                    }
-                                    _debugOutput.Add($"[{param_old.ParamType}] {oldCell.Def.InternalName}: {oldCell.Value} -> {newCell.Value}");
-                                }
-                            }
-                            //AdjustDrawParamRow(param_old, row_old, row_new);
-                            //TransferParamRow(row_old, row_target);
-                            */
-                            //
-
+                            // DrawParam
                             if (param_vanilla == null)
                                 break;
 
-                            PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_old.ID);
-                            PARAM.Row? row_vanilla = param_vanilla.Rows.Find(r => r.ID == row_old.ID);
-
-                            if (row_new == null || row_vanilla == null)
+                            PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_ptde_modded.ID);
+                            PARAM.Row? row_vanilla = param_vanilla.Rows.Find(r => r.ID == row_ptde_modded.ID);
+                            if (false && Is_SOTE && item.Key == "m14_LightScatteringBank")
                             {
-                                TransferParamRow(row_old, row_target);
-                                param_new_target.Rows.Add(row_target);
+                                // Manual SOTE changes
+                                // m14: use default DSR values
+                                param_new_target.Rows.Add(row_new);
                             }
                             else
                             {
-                                OffsetDrawParamRow(row_old, row_new, row_vanilla);
-                                param_new_target.Rows.Add(row_new);
+                                if (row_new == null || row_vanilla == null)
+                                {
+                                    Debugger.Break();
+                                    TransferParamRow(row_ptde_modded, row_dsr_target);
+                                    param_new_target.Rows.Add(row_dsr_target);
+                                }
+                                else
+                                {
+                                    if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
+                                    {
+                                        // EXPERIMENTAL: use least shiny value
+                                        // May want this as an option for non-sote
+                                        // envSpc_colA: use the smallest value (shininess)
+                                        short moddedSpcA = (short)row_ptde_modded["envSpc_colA"].Value;
+                                        short vanillaSpcA = (short)row_vanilla["envSpc_colA"].Value;
+                                        short dsrSpcA = (short)row_new["envSpc_colA"].Value;
+                                        OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
+                                        if (dsrSpcA > moddedSpcA)
+                                        {
+                                            row_new["envSpc_colA"].Value = moddedSpcA;
+                                        }
+                                        else
+                                        {
+                                            row_new["envSpc_colA"].Value = dsrSpcA;
+                                        }
+                                        param_new_target.Rows.Add(row_new);
+                                    }
+                                    else
+                                    {
+                                        // Default
+                                        OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
+                                        param_new_target.Rows.Add(row_new);
+                                    }
+                                }
                             }
                         }
                         else
                         {
-                            TransferParamRow(row_old, row_target);
-                            param_new_target.Rows.Add(row_target);
+                            // GameParam
+                            TransferParamRow(row_ptde_modded, row_dsr_target);
+                            param_new_target.Rows.Add(row_dsr_target);
                         }
                     }
+
+                    if (Is_SOTE && param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
+                    {
+                        foreach (var row in param_new_target.Rows)
+                        {
+                            row["enable_pvp"].Value = (byte)1;
+                        }
+                    }
+
                     if (orderRows)
-                        param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
+                    param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
                 });
 
                 // Save each param, then the parambnd
@@ -853,6 +867,7 @@ namespace DSRPorter
             bnd_old.Files = bnd_old.Files.OrderBy(e => e.ID).ToList(); // This matters.  
         }
 
+        private bool _objBNDFinished = false;
         private void DSRPorter_OBJBND()
         {
             var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\obj", "*.objbnd");
@@ -869,6 +884,7 @@ namespace DSRPorter
             }
             Debug.WriteLine("Finished: OBJBND");
             OutputLog.Add($@"Finished: obj\*.objbnd");
+            _objBNDFinished = true;
         }
 
         private void DSRPorter_ESD()
@@ -1043,37 +1059,96 @@ namespace DSRPorter
 
         public void DSRPorter_ObjTextures()
         {
-            while (!_MSBFinished)
+            while (!_MSBFinished || !_objBNDFinished)
             {
                 // Wait for MSB to populate list of objects transferred between maps
                 Thread.Sleep(1000);
             }
 
             TexturePorter texPorter = new(this);
+            int progressBarTotal = 280;
 
             if (Is_SOTE)
             {
+                progressBarTotal /= 2;
                 foreach (var scaledObj in SOTEScaledObjectList)
                 {
-                    _objsToPort.Add(scaledObj.NewModelName);
+                    texPorter.SelfContainTextures_Objbnd(scaledObj.NewModelName);
+                    string outputPath = $@"{DataPath_Output}\obj\{scaledObj.NewModelName}.objbnd.dcx";
+                    if (!File.Exists(outputPath))
+                    {
+                        if (scaledObj.NewModelID == 4612) // root seals
+                            continue;
+                        File.Copy($@"{DataPath_DSR}\obj\{scaledObj.NewModelName}.objbnd.dcx", outputPath);
+                    }
+                    _progressBar.Invoke(() => _progressBar.Increment(1 + progressBarTotal / SOTEScaledObjectList.Count));
                 }
-                OutputLog.Add($@"Adding self-contained textures to pre-scaled SOTE objects");
+                OutputLog.Add($@"Ported all pre-scaled SOTE objects.");
             }
 
             OutputLog.Add($@"Adding self-contained textures to objects added to new maps");
             foreach (var obj in _objsToPort)
             {
                 texPorter.SelfContainTextures_Objbnd(obj);
-                if (Is_SOTE)
-                {
-                    OutputLog.Add($@"Added self-contained textures: {obj}");
-                }
-                else
-                {
-                    OutputLog.Add($@"Added self-contained textures: {obj}");
-                }
-                _progressBar.Invoke(() => _progressBar.Increment(1 + 280 / _objsToPort.Count));
+                OutputLog.Add($@"Added self-contained textures: {obj}");
+                _progressBar.Invoke(() => _progressBar.Increment(1 + progressBarTotal / _objsToPort.Count));
             }
+        }
+
+        public void SOTE_ScaledObjectAnimationBullshittery()
+        {
+            var outputPaths = Directory.GetFiles($@"{DataPath_Output}\obj", "*.objbnd.dcx");
+            foreach (var sObj in SOTEScaledObjectList)
+            {
+                if (sObj.NewModelID == 4612)
+                    continue;
+                string bndPath_target = $@"{DataPath_Output}\obj\{sObj.NewModelName}.objbnd.dcx";
+                string bndPath_vanilla = $@"{DataPath_DSR}\obj\{sObj.OGModelName}.objbnd.dcx";
+                var bnd_target = BND3.Read(bndPath_target);
+                var bnd_vanilla = BND3.Read(bndPath_vanilla);
+
+                foreach (var objbndFile in bnd_target.Files)
+                {
+                    if (objbndFile.Name.EndsWith(".anibnd"))
+                    {
+                        BND3 mBND = BND3.Read(objbndFile.Bytes);
+                        BND3 vBND;
+                        BinderFile? vFile = bnd_vanilla.Files.Find(e => e.Name.Replace(sObj.OGModelName, sObj.NewModelName) == objbndFile.Name);
+                        if (vFile == null)
+                        {
+                            // this should be the root seal (o4610 -> o4612). apparently vanilla anims work fine for that so don't worry about it.
+                            Debugger.Break();
+                            continue;
+
+                        }
+                        else
+                        {
+                            vBND = BND3.Read(vFile.Bytes);
+                        }
+                        foreach (var f in mBND.Files)
+                        {
+                            if (f.Name.ToLower().EndsWith(".hkx"))
+                            {
+                                if (!f.Name.ToLower().StartsWith("skeleton"))
+                                {
+                                    var vAnim = vBND.Files.Find(e => e.Name.Replace(sObj.OGModelName, sObj.NewModelName) == f.Name);
+                                    if (vAnim == null)
+                                    {
+                                        throw new Exception("SOTE: Animation in modded scaled object objbnd cannot be found in vanilla DSR animations This shouldn't happen!");
+                                    }
+                                    f.Bytes = vAnim.Bytes;
+                                }
+                            }
+                        }
+                        objbndFile.Bytes = mBND.Write();
+                    }
+                }
+
+
+                Util.WritePortedSoulsFile(bnd_target, DataPath_Output, bndPath_target, CompressionType);
+            }
+            Debug.WriteLine("Finished: SOTE OBJBND VANILLA ANIM TRANSFER");
+            OutputLog.Add($@"Finished: obj\*.objbnd");
         }
 
         public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
@@ -1102,7 +1177,7 @@ namespace DSRPorter
             DataPath_PTDE_Vanilla = ptdePath_Vanilla;
             DataPath_PTDE_Mod = ptdePath_Mod;
             DataPath_DSR = dsrPath;
-
+            
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
@@ -1120,13 +1195,15 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
+
+                Task.Run(() => DSRPorter_ObjTextures()), // Done
+                
                 //
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
                 Task.Run(() => DSRPorter_DrawParam()), // Done, needs manual adjustments for SOTE.
                 //
-                Task.Run(() => DSRPorter_ObjTextures()) // Done
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
@@ -1146,7 +1223,7 @@ namespace DSRPorter
                     }
                 }
             }
-
+            
             if (Is_SOTE)
             {
                 string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
@@ -1161,8 +1238,12 @@ namespace DSRPorter
                 foreach (var obj in SOTEScaledObjectList)
                 {
                     if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                    {
+                        Debugger.Break();
                         MessageBox.Show($"Couldn't find scaled object {obj.NewModelName} in the output folder!");
+                    }
                 }
+                SOTE_ScaledObjectAnimationBullshittery();
             }
 
             LogUnportedFiles();

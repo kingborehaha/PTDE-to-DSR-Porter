@@ -130,6 +130,12 @@ namespace DSRPorter
             }
         }
 
+        /// <summary>
+        /// Modifies an objBND to contain its own textures.
+        /// </summary>
+        /// <param name="modelName"></param>
+        /// <param name="alwaysPort">Port even if self-contained texture processing fails (will not port in all cases).</param>
+        /// <exception cref="NotImplementedException"></exception>
         public void SelfContainTextures_Objbnd(string modelName)
         {
             string bndPath = $@"{_porter.DataPath_Output}\obj\{modelName}.objbnd.dcx";
@@ -151,9 +157,15 @@ namespace DSRPorter
             foreach (var file in objBND.Files)
             {
                 if (TPF.Is(file.Bytes))
+                {
+                    // Already has self contained textures.
+                    _porter.OutputLog.Add($"Skipped self-contained texture processing for \"{bndPath}\" since it already has texture data.");
                     return;
+                }
                 if (file.ID == 100)
+                {
                     throw new NotImplementedException($"Unhandled issue: \"{bndPath}\" has a file with an ID of 100 ({file.Name}).");
+                }
             }
 
             TPF? newObjTPF = CreateTPFforBND(objBND);
@@ -168,6 +180,10 @@ namespace DSRPorter
                 };
                 objBND.Files.Insert(0, binder);
                 Util.WritePortedSoulsFile(objBND, dataPath, bndPath, _porter.CompressionType);
+            }
+            else
+            {
+                _porter.OutputLog.Add($"Couldn't finiish self-contained texture processing for \"{bndPath}\", object was skipped.");
             }
         }
     }
