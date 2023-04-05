@@ -285,6 +285,23 @@ namespace DSRPorter
                         }
                     }
                 }
+
+                foreach (var p in msb.Parts.Enemies)
+                {
+                    if (true)
+                    {
+                        if (msbName == "m10_00_00_00")
+                        {
+                            // Some slimes in the depths need to be moved downards to not clip in the walls.
+                            if (p.Name == "c3200_0006" && p.Position == new Vector3(-122.8f, -70.5f, -21.0f))
+                                p.Position = new Vector3 (-122.8f, -70.582f, -21.0f);
+                            else if (p.Name == "c3200_0003" && p.Position == new Vector3(-119.8f, -70.5f, -27.5f))
+                                p.Position = new Vector3(-119.8f, -70.593f, -27.5f);
+                            else if (p.Name == "c3200_0002" && p.Position == new Vector3(-122.8f, -70.5f, -28.5f))
+                                p.Position = new Vector3(-122.8f, -70.650f, -28.5f);
+                        }
+                    }
+                }
                 Util.WritePortedSoulsFile(msb, DataPath_PTDE_Mod, path);
             }
             Debug.WriteLine("Finished: MSB");
@@ -328,9 +345,11 @@ namespace DSRPorter
                 foreach (var file_PTDE_modded in bnd_PTDE_modded.Files)
                 {
                     bool is_ffx = false;
+                    long ffxID = 0;
                     if (FXR1.Is(file_PTDE_modded.Bytes))
                     {
                         is_ffx = true;
+                        ffxID = GetFFXId(file_PTDE_modded.Name);
                     }
                     var file_PTDE_vanilla = bnd_PTDE_vanilla.Files.Find(f => f.Name == file_PTDE_modded.Name);
 
@@ -345,15 +364,9 @@ namespace DSRPorter
                             // File was unmodified
                             if (is_ffx)
                             {
-                                long ffxID = GetFFXId(file_PTDE_modded.Name);
                                 if (!_ffxWhitelist.Contains(ffxID))
                                 {
                                     // Not present in whitelist, skip this FFX.
-                                    continue;
-                                }
-                                if (_ffxBlacklist.Contains(ffxID))
-                                {
-                                    // Present in blacklist, skip this FFX.
                                     continue;
                                 }
                             }
@@ -362,6 +375,14 @@ namespace DSRPorter
                                 // Skip any non-FFX files.
                                 continue;
                             }
+                        }
+                    }
+                    if (is_ffx)
+                    {
+                        if (_ffxBlacklist.Contains(ffxID))
+                        {
+                            // Present in blacklist, skip this FFX.
+                            continue;
                         }
                     }
 
@@ -845,6 +866,28 @@ namespace DSRPorter
             {
                 if (file_old.Name.ToLower().EndsWith(".hkx"))
                 {
+                    // Check if DSR has this new HKX file so it can be logged if necessary.
+                    file_old.Name = file_old.Name.Replace("win32", "x64");
+                    if (bnd_new.Files.Find(e => e.Name == file_old.Name) == null)
+                    {
+                        if (Is_SOTE)
+                        {
+                            if (file_old.Name == @"N:\FRPG\data\Model\chr\c5250\hkxx64\a01_3029.hkx")
+                            {
+                                // Port new ceaseless animation (not TAE hkx override due to some funny bug). Desired animation is in c5250_c5250.anibnd.dcx
+                                file_old.Bytes = BND3.Read($@"{DataPath_DSR}\chr\c5250_c5250.anibnd.dcx").Files.Find(e => e.Name.EndsWith("a01_3004.hkx")).Bytes;
+                                continue;
+                            }
+                            else if (file_old.Name == @"N:\FRPG\data\Model\chr\c5250\hkxx64\a01_3030.hkx")
+                            {
+                                // Port new ceaseless animation (not TAE hkx override due to some funny bug). Desired animation is in c5250_c5250.anibnd.dcx
+                                file_old.Bytes = BND3.Read($@"{DataPath_DSR}\chr\c5250_c5250.anibnd.dcx").Files.Find(e => e.Name.EndsWith("a01_3019.hkx")).Bytes;
+                                continue;
+                            }
+                        }
+                        OutputLog.Add($"MANUAL PORT REQUEST: Skipped \"{file_old.Name}\" since it's a newly introduced modded HKX file. This file must be ported manually.");
+                    }
+
                     bnd_old.Files.Remove(file_old);
                     continue;
                 }
@@ -857,6 +900,7 @@ namespace DSRPorter
                     bnd_old.Files.Remove(file_old);
                     continue;
                 }
+
                 file_old.Name = file_old.Name.Replace("win32", "x64");
 
                 if (BND3.Is(file_old.Bytes))
@@ -870,7 +914,7 @@ namespace DSRPorter
                         }
                         else
                         {
-                            OutputLog.Add($"Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
+                            OutputLog.Add($"MANUAL PORT REQUEST: Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
                             continue;
                         }
                     }
@@ -1219,13 +1263,12 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
-
-                Task.Run(() => DSRPorter_FFX()), // Done
-                
+                Task.Run(() => DSRPorter_ANIBND()), // Done
+                /*
                 Task.Run(() => DSRPorter_MSB()), // Done
+                Task.Run(() => DSRPorter_FFX()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
-                Task.Run(() => DSRPorter_ANIBND()), // Done
                 Task.Run(() => DSRPorter_CHRBND()), // Done
                 Task.Run(() => DSRPorter_OBJBND()), // Done
                 Task.Run(() => DSRPorter_MSGBND()), // Done
@@ -1243,7 +1286,7 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_GameParam()), // Done
                 Task.Run(() => DSRPorter_DrawParam()), // Done, needs manual adjustments for SOTE.
                 //
-                
+                */
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
@@ -1273,14 +1316,14 @@ namespace DSRPorter
                     string fileName = Path.GetFileName(path);
                     Directory.CreateDirectory(targetPath.Replace(fileName, ""));
                     File.Copy(path, targetPath, true);
-                    OutputLog.Add($"Ported manually prepared file {fileName}");
+                    OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
                 }
                 foreach (var obj in SOTEScaledObjectList)
                 {
                     if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
                     {
                         Debugger.Break();
-                        MessageBox.Show($"Couldn't find scaled object {obj.NewModelName} in the output folder!");
+                        MessageBox.Show($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
                     }
                 }
                 SOTE_ScaledObjectAnimationBullshittery();

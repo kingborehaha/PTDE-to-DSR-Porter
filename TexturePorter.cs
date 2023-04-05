@@ -149,7 +149,7 @@ namespace DSRPorter
 
             if (!File.Exists(bndPath))
             {
-                _porter.OutputLog.Add($"Couldn't find \"{bndPath}\" in DSR data, skipped self-contained texture processing.");
+                _porter.OutputLog.Add($"TEXTURE: Couldn't find \"{bndPath}\" in DSR data, skipped self-contained texture processing.");
                 return;
             }
 
@@ -159,7 +159,7 @@ namespace DSRPorter
                 if (TPF.Is(file.Bytes))
                 {
                     // Already has self contained textures.
-                    _porter.OutputLog.Add($"Skipped self-contained texture processing for \"{bndPath}\" since it already has texture data.");
+                    _porter.OutputLog.Add($"TEXTURE: Skipped self-contained texture processing for \"{bndPath}\" since it already has texture data.");
                     return;
                 }
                 if (file.ID == 100)
@@ -183,7 +183,7 @@ namespace DSRPorter
             }
             else
             {
-                _porter.OutputLog.Add($"Couldn't finiish self-contained texture processing for \"{bndPath}\", object was skipped.");
+                _porter.OutputLog.Add($"TEXTURE: Couldn't finish self-contained texture processing for \"{bndPath}\", object was skipped.");
             }
         }
     }
