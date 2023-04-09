@@ -53,7 +53,7 @@ namespace DSRPorter
         public string DataPath_PTDE_Vanilla = "";
         public string DataPath_DSR = "";
 
-        public readonly string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
+        public string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
         public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
         private ConcurrentBag<PARAMDEF> _paramdefs_ptde = new();
@@ -68,6 +68,7 @@ namespace DSRPorter
         public const bool EnableScaledObjectAdjustments = false;
         public const bool Is_SOTE = true;
         public const bool UseFfxWhitelist = false; // If true, only FFX in the whitelist will be ported to DSR. All other non-new FFX will be DSR.
+        public bool UseDsrTextures = true;
 
         private readonly List<long> _ffxWhitelist = new()
         {
@@ -92,7 +93,10 @@ namespace DSRPorter
             90018, // bonfire
             90019, // bonfire
             90020, // bonfire
-            
+
+            // Effects whitelisted because they won't Fuck Off in DSR like they do in PTDE
+            22723, // tiny fireball (used for a billion things, including chaos parasite r2)
+
         };
         private readonly List<long> _ffxBlacklist = new()
         {
@@ -128,7 +132,7 @@ namespace DSRPorter
             new ScaledObject("o1419", "o1422", new Vector3( 0.5f,    1.0f,   1.0f)),
             //
             new ScaledObject("o4510", "o4511", new Vector3( 1.6f,    1.6f,   1.6f)),
-            new ScaledObject("o4830", "o4831", new Vector3(16.0f,   16.0f,  16.0f)), // giant demon statue turrets
+            //new ScaledObject("o4830", "o4831", new Vector3(16.0f,   16.0f,  16.0f)), // giant demon statue turrets. Removed because I want collision to NOT scale with those since they interfere with the turret.
             new ScaledObject("o8540", "o8545", new Vector3( 2.0f,    2.0f,   2.0f)),
             new ScaledObject("o6700", "o6701", new Vector3( 2.3f,    1.5f,   1.0f)),
             new ScaledObject("o8051", "o8052", new Vector3( 1.0f,    1.0f,   4.0f)),
@@ -199,6 +203,17 @@ namespace DSRPorter
                         else
                         {
                             ScaledObject? scaledObj = null;
+
+                            if (msbName == "m14_01_00_00" && p.ModelName == "o4830")
+                            {
+                                if (p.Scale == new Vector3(16, 16, 16))
+                                {
+                                    // Ignore izalith statue turrets due to scaled collision making the turret not work.
+                                    OutputLog.Add($"Ignored Demon Statue Turret ({p.Name}) scaling.");
+                                    continue;
+                                }
+                            }
+
                             foreach (var so in SOTEScaledObjectList)
                             {
                                 // SOTE: go through pre-scaled object list to find the corresponding pre-scaled object.
@@ -895,8 +910,8 @@ namespace DSRPorter
                 {
                     // TODO: to properly support this, scan to see if there was a modified chrtpfBDT in the chr folder.
                     // * If the BDT was unmodified, just use DSR BHD.
-                    // * if the BDT was modified, I need to support that with a new function & probably use the moddedPTDE bhd.
-                    OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it.).");
+                    // * if the BDT was modified, I need to support that with a new function & probably use the moddedPTDE bhd w/ adjustments so it doesnt look like shit.
+                    OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it).");
                     bnd_old.Files.Remove(file_old);
                     continue;
                 }
@@ -922,6 +937,14 @@ namespace DSRPorter
                     ModifyEntityBND(modifiedBND, BND3.Read(file_new.Bytes));
                     file_old.Bytes = modifiedBND.Write();
                 }
+                else if (TPF.Is(file_old.Bytes))
+                {
+                    if (UseDsrTextures)
+                    {
+                        OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it).");
+                        bnd_old.Files.Remove(file_old);
+                    }
+                }
             }
 
             foreach (var file_new in bnd_new.Files)
@@ -944,8 +967,19 @@ namespace DSRPorter
                     bnd_old.Files.Add(file_new);
                     continue;
                 }
+                if (TPF.Is(file_new.Bytes))
+                {
+                    if (UseDsrTextures)
+                    {
+                        while (bnd_old.Files.Find(f => f.ID == file_new.ID) != null)
+                        {
+                            file_new.ID++;
+                        }
+                        bnd_old.Files.Add(file_new);
+                        continue;
+                    }
+                }
             }
-
             bnd_old.Files = bnd_old.Files.OrderBy(e => e.ID).ToList(); // This matters.  
         }
 
@@ -1044,39 +1078,75 @@ namespace DSRPorter
             if (files_old.Length == 0)
                 return;
 
-            List<BinderFile> files_new = new();
+            List<BinderFile> files_DSR_list = new();
             foreach (var file in Directory.GetFiles($@"{DataPath_DSR}\script", "*.luabnd.dcx"))
             {
-                files_new.AddRange(BND3.Read(file).Files);
+                files_DSR_list.AddRange(BND3.Read(file).Files);
             }
             foreach (var bndPath_old in files_old)
             {
-                var bnd_old = BND3.Read(bndPath_old);
+                var bnd_PTDE_Target = BND3.Read(bndPath_old);
                 int count = 0;
 
-                foreach (var file_old in bnd_old.Files.ToList())
+                foreach (var file_PTDE_Target in bnd_PTDE_Target.Files.ToList())
                 {
-                    file_old.Name = file_old.Name.Replace("win32", "x64");
-                    if (file_old.Name.ToLower().EndsWith(".lua"))
+                    file_PTDE_Target.Name = file_PTDE_Target.Name.Replace("win32", "x64");
+                    if (file_PTDE_Target.Name.ToLower().EndsWith(".lua"))
                     {
-                        var luaHeader = file_old.Bytes[..4];
+                        var luaHeader = file_PTDE_Target.Bytes[..4];
                         if (luaHeader.SequenceEqual(new byte[4] { 0x1B, 0x4C, 0x75, 0x61 }))
                         {
                             // This is compiled lua. 32 bit compiled lua cannot be used in DSR, so use DSR instead.
-                            BinderFile? file_new = files_new.Find(e => e.Name == file_old.Name);
-                            if (file_new == null)
+                            BinderFile? file_DSR = files_DSR_list.Find(e => e.Name == file_PTDE_Target.Name);
+                            if (file_DSR == null)
                             {
-                                MessageBox.Show($"Error: \"{file_old.Name}\" is both compiled and cannot be found in DSR data" +
+                                MessageBox.Show($"Error: \"{file_PTDE_Target.Name}\" is both compiled and cannot be found in DSR data" +
                                     $"\n\nIf this is a new lua file, please provide decompiled lua instead. Otherwise, fix DSR version being unfindable (name must be identical)."
                                     , "Error: LuaBND porting cancelled", MessageBoxButtons.OK);
                                 return;
                             }
-                            file_old.Bytes = file_new.Bytes;
+                            file_PTDE_Target.Bytes = file_DSR.Bytes;
                         }
                         else
                         {
-                            // This is not compiled lua. Can be used in DSR safely.
+                            // This .lua file is not compiled. Can be used in DSR safely.
                             count++;
+                        }
+                    }
+                    else
+                    {
+                        BinderFile? file_new = files_DSR_list.Find(e => e.Name == file_PTDE_Target.Name);
+                        if (file_PTDE_Target.Name.ToUpper().Contains("LUAINFO"))
+                        {
+                            LUAINFO DSRLuaInfo = LUAINFO.Read(file_new.Bytes);
+                            LUAINFO PTDELuaInfo = LUAINFO.Read(file_PTDE_Target.Bytes);
+                            foreach (var dsrinfo in DSRLuaInfo.Goals)
+                            { 
+                                if (PTDELuaInfo.Goals.Find(e => e.Name == dsrinfo.Name) == null)
+                                {
+                                    PTDELuaInfo.Goals.Add(dsrinfo);
+                                }
+                            }
+                            if (!file_new.Bytes.SequenceEqual(file_PTDE_Target.Bytes))
+                            {
+                                Debugger.Break();
+                            }
+                        }
+                        else if (file_PTDE_Target.Name.ToUpper().Contains("GNL"))
+                        {
+                            LUAGNL DSRLuaGNL = LUAGNL.Read(file_new.Bytes);
+                            LUAGNL PTDELuaGNL = LUAGNL.Read(file_PTDE_Target.Bytes);
+                            if (!file_new.Bytes.SequenceEqual(file_PTDE_Target.Bytes))
+                            {
+                                Debugger.Break();
+                            }
+                            // Delete all LUAGNL
+                            bnd_PTDE_Target.Files.Remove(file_PTDE_Target);
+
+                        }
+                        else
+                        {
+                            Debugger.Break();
                         }
                     }
                 }
@@ -1092,7 +1162,7 @@ namespace DSRPorter
                     }
                 }
 
-                Util.WritePortedSoulsFile(bnd_old, DataPath_PTDE_Mod, bndPath_old, CompressionType);
+                Util.WritePortedSoulsFile(bnd_PTDE_Target, DataPath_PTDE_Mod, bndPath_old, CompressionType);
             }
 
             Debug.WriteLine("Finished: LUABND");
@@ -1232,7 +1302,26 @@ namespace DSRPorter
             Debug.WriteLine("Finished: SOTE OBJBND VANILLA ANIM TRANSFER");
             OutputLog.Add($@"Finished: obj\*.objbnd");
         }
-
+        /*
+        public void CrashTEstSelfContainALLTEXTURES()
+        {
+            DataPath_Output = @"Y:\SteamLibrary\steamapps\common\DARK SOULS REMASTERED";
+            DataPath_DSR = @"Y:\SteamLibrary\steamapps\common\DARK SOULS REMASTERED";
+            MessageBox.Show("Trying to self-contain all textures directly in DSR folder! make sure you actually want to do this, nerd!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            TexturePorter texPorter = new(this);
+            foreach (var obj in Directory.GetFiles("Y:\\SteamLibrary\\steamapps\\common\\DARK SOULS REMASTERED\\obj", "*.objbnd.dcx"))
+            {
+                File.Delete(obj);
+                File.Move($"{obj}.containedbak", obj);
+                //File.Copy(obj, $"{obj}.containedbak", false);
+                
+                //texPorter.SelfContainTextures_Objbnd(Path.GetFileName(obj).Replace(".objbnd.dcx", ""));
+                //OutputLog.Add($@"Added self-contained textures: {obj}");
+                
+            }
+            throw new Exception("done");
+        }
+        */
         public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
         {
             if (Directory.Exists(DataPath_Output))
@@ -1263,16 +1352,17 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
-                Task.Run(() => DSRPorter_ANIBND()), // Done
-                /*
-                Task.Run(() => DSRPorter_MSB()), // Done
-                Task.Run(() => DSRPorter_FFX()), // Done
-                Task.Run(() => DSRPorter_ESD()), // Done
-                Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_CHRBND()), // Done
                 Task.Run(() => DSRPorter_OBJBND()), // Done
+
+                /*
+                Task.Run(() => DSRPorter_LUABND()), // Done, luainfo and luagnl crash concerns though.
+                Task.Run(() => DSRPorter_ANIBND()), // Done
+                Task.Run(() => DSRPorter_ESD()), // Done
+                Task.Run(() => DSRPorter_MSB()), // Done
+                Task.Run(() => DSRPorter_FFX()), // Done
+                Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_MSGBND()), // Done
-                Task.Run(() => DSRPorter_LUABND()), // Done? Needs memory limit crash testing and global event testing.
 
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
