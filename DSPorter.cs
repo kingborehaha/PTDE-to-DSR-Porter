@@ -70,7 +70,14 @@ namespace DSRPorter
         public const bool UseFfxWhitelist = false; // If true, only FFX in the whitelist will be ported to DSR. All other non-new FFX will be DSR.
         public bool UseDsrTextures = true;
 
-        private readonly List<long> _ffxWhitelist = new()
+        private readonly List<long> _ffxTpffWhitelist = new()
+        {
+            // TPF for FFX
+            //91101, // Man-serpent mage lingering spit
+            //20031, // Man-serpent mage lingering spit
+        };
+
+        private List<long> _ffxWhitelist = new()
         {
             // Bonfires
             90000, // bonfire
@@ -103,7 +110,7 @@ namespace DSRPorter
             12701, // Man-serpent mage lingering spit (ends too early in DSR)
 
         };
-        private readonly List<long> _ffxBlacklist = new()
+        private List<long> _ffxBlacklist = new()
         {
             // Crystal effects
             15291,
@@ -390,42 +397,49 @@ namespace DSRPorter
 
                 foreach (var file_PTDE_modded in bnd_PTDE_modded.Files)
                 {
+                    long fileID = GetFileIdFromName(file_PTDE_modded.Name);
+
                     bool is_ffx = false;
-                    long ffxID = 0;
                     if (FXR1.Is(file_PTDE_modded.Bytes))
                     {
                         is_ffx = true;
-                        ffxID = GetFFXId(file_PTDE_modded.Name);
+                        
                     }
                     var file_PTDE_vanilla = bnd_PTDE_vanilla.Files.Find(f => f.Name == file_PTDE_modded.Name);
-
 
                     if (file_PTDE_vanilla != null)
                     {
                         // File exists in vanilla, check if it is allowed to be ported.
 
-                        // Check if it was modified
-                        if (file_PTDE_vanilla.Bytes.SequenceEqual(file_PTDE_modded.Bytes))
+                        if (_ffxTpffWhitelist.Contains(GetFileIdFromName(file_PTDE_vanilla.Name)))
                         {
-                            // File was unmodified
-                            if (is_ffx)
+                            Debugger.Break();
+                        }
+                        else
+                        {
+                            // Check if it was modified
+                            if (file_PTDE_vanilla.Bytes.SequenceEqual(file_PTDE_modded.Bytes))
                             {
-                                if (!_ffxWhitelist.Contains(ffxID))
+                                // File was unmodified
+                                if (is_ffx)
                                 {
-                                    // Not present in whitelist, skip this FFX.
+                                    if (!_ffxWhitelist.Contains(fileID))
+                                    {
+                                        // Not present in whitelist, skip this FFX.
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    // Skip any non-FFX files.
                                     continue;
                                 }
-                            }
-                            else
-                            {
-                                // Skip any non-FFX files.
-                                continue;
                             }
                         }
                     }
                     if (is_ffx)
                     {
-                        if (_ffxBlacklist.Contains(ffxID))
+                        if (_ffxBlacklist.Contains(fileID))
                         {
                             // Present in blacklist, skip this FFX.
                             continue;
@@ -475,6 +489,75 @@ namespace DSRPorter
                 bnd_DSR_target.Files = bnd_DSR_target.Files.OrderBy(e => e.ID).ToList();
                 Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_PTDE_Mod, path, CompressionType);
             }
+
+            // Make a second pass for whitelisted FFX in ffxbnds not used by SOTE PTDE
+            foreach (var dsrPath in Directory.GetFiles($@"{DataPath_DSR}\sfx", "*.ffxbnd.dcx"))
+            {
+                if (dsrPath.EndsWith("Patch.ffxbnd.dcx"))
+                {
+                    // It seems like dupe FFX present in common already take precedence over patch so this may not matter too much.
+                    // But if it does turn out to matter: ha ha, idiot. finish this.
+                    /*
+                    // For patchffxbnd, any present FFXs are expected to be in commonffxbnd instead.
+                    BND3 bnd_patch = BND3.Read(dsrPath);
+                    BND3 commonBND = BND3.Read($@"{DataPath_Output}\sfx\FRPG_SfxBnd_CommonEffects.ffxbnd.dcx");
+                    foreach (var patchFile in bnd_patch.Files.ToList())
+                    {
+                        long fileID = GetFileIdFromName(patchFile.Name);
+                        if (FXR1.Is(patchFile.Bytes) && _ffxWhitelist.Contains(fileID))
+                        {
+                            // Scan each output FFXBND for this whitelist FFX found in patch ffx. If it isn't present in common, then it probably isn't being properly implemented.
+                            bool handledByCommon = false;
+                            foreach (var commonFile in commonBND.Files)
+                            {
+                                if (FXR1.Is(commonFile.Bytes) && GetFileIdFromName(commonFile.Name) == fileID)
+                                {
+                                    handledByCommon = true;
+                                    break;
+                                }
+                            }
+                            if (!handledByCommon)
+                            {
+                                // TODO: add to output instead
+                                throw new NotImplementedException("Not equipped to handle whitelisted FFX in DSR patch.ffxbnd");
+                            }
+                            bnd_patch.Files.Remove(patchFile);
+                        }
+                    }
+                    Util.WritePortedSoulsFile(bnd_patch, DataPath_DSR, dsrPath, CompressionType);
+                    */
+                    continue;
+                }
+
+                bool portThisBND = false;
+                var fileName = Path.GetFileNameWithoutExtension(dsrPath);
+                if (Directory.GetFiles($@"{DataPath_Output}\sfx", "*.ffxbnd.dcx").ToList().Find(e => Path.GetFileNameWithoutExtension(e) == fileName) != null)
+                {
+                    continue;
+                }
+                BND3 bnd_DSR_target = BND3.Read(dsrPath);
+                BND3 bnd_PTDE_vanilla = BND3.Read(dsrPath.Replace(DataPath_DSR, DataPath_PTDE_Vanilla).Replace(".dcx", ""));
+                foreach (var file in bnd_DSR_target.Files)
+                {
+                    long fileID = GetFileIdFromName(file.Name);
+                    if (FXR1.Is(file.Bytes) && _ffxWhitelist.Contains(fileID))
+                    {
+                        var ptde_file = bnd_PTDE_vanilla.Files.Find(e => GetFileIdFromName(e.Name) == fileID);
+
+                        FXR1 ffx_PTDE = FXR1.Read(ptde_file.Bytes);
+
+                        // Convert to DSR
+                        ffx_PTDE.Wide = true;
+                        file.Bytes = ffx_PTDE.Write();
+                        portThisBND = true;
+                    }
+                }
+                if (portThisBND)
+                {
+                    Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_DSR, dsrPath, CompressionType);
+                }
+            }
+
             Debug.WriteLine("Finished: FFX");
             OutputLog.Add($@"Finished: sfx\*.ffxbnd");
         }
@@ -602,8 +685,6 @@ namespace DSRPorter
                 row_old["envDif_colA"].Value = row_new["envDif_colA"].Value;
             }
         }
-
-
 
         private ConcurrentBag<string> _debugOutput = new();
         private void DSRPorter_TransferParams(string datapath, bool isDrawParam = false)
@@ -811,13 +892,19 @@ namespace DSRPorter
                                         }
 
                                         // added this v2
-                                        if (dsrDifA > moddedDifA)
+                                        if (item.Key.StartsWith("m14"))
                                         {
-                                            row_new["envDif_colA"].Value = moddedDifA;
-                                        }
-                                        else
-                                        {
-                                            row_new["envDif_colA"].Value = dsrDifA;
+                                            if (row_new.ID == 7 || row_new.ID == 15)
+                                            {
+                                                if (dsrDifA > moddedDifA)
+                                                {
+                                                    row_new["envDif_colA"].Value = moddedDifA;
+                                                }
+                                                else
+                                                {
+                                                    row_new["envDif_colA"].Value = dsrDifA;
+                                                }
+                                            }
                                         }
                                         //
 
@@ -1409,7 +1496,7 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_MSGBND()), // Done
                 Task.Run(() => DSRPorter_EMEVD()), // Done
 
-                Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
+                //Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
 
@@ -1419,10 +1506,11 @@ namespace DSRPorter
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
-                Task.Run(() => DSRPorter_DrawParam()), // Done, needs manual adjustments for SOTE.
+                Task.Run(() => DSRPorter_DrawParam()), // Done
                 //
 #else
-                Task.Run(() => DSRPorter_MSGBND()), // Done
+                Task.Run(() => DSRPorter_FFX()), // Done
+                Task.Run(() => DSRPorter_EMEVD()), // Done
 #endif
 
             };

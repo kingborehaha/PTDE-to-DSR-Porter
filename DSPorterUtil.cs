@@ -191,22 +191,48 @@ namespace DSRPorter
             return scaledObj;
         }
 
-        public long GetFFXId(string name)
+        public bool IsCoreFFX(BinderFile binder)
+        {
+            // Some FFX are super important and cannot be changed without breaking the game.
+            var id = GetFileIdFromName(binder.Name);
+            if (id <= 2999 && id >= 2000)
+                return true;
+            return false;
+        }
+
+        public long GetFileIdFromName(string name)
         {
             string fileName = Path.GetFileNameWithoutExtension(name);
             long id = long.Parse(string.Join("", fileName.Where(c => char.IsDigit(c))));
             return id;
         }
 
-        public bool IsCoreFFX(BinderFile binder)
+        /*
+        private List<Type> _textureTypes = new()
         {
-            // Some FFX are super important and cannot be changed without breaking the game.
-            var id = GetFFXId(binder.Name);
-            if (id <= 2999 && id >= 2000)
-                return true;
-            return false;
-        }
+            typeof(FXR1.FXActionData.FXActionData27),
+            typeof(FXR1.FXActionData.FXActionData40),
+            typeof(FXR1.FXActionData.FXActionData43),
+            typeof(FXR1.FXActionData.FXActionData59),
+            typeof(FXR1.FXActionData.FXActionData61),
+        };
+        public HashSet<long> GetFfxTextureIDs(FXR1 ffx)
+        {
+            HashSet<long> list = new();
 
+            foreach (var typ in _textureTypes)
+            {
+                foreach (var prop in ffx.GetType().GetProperties())
+                {
+                    if (prop.PropertyType == typ)
+                    {
+                        Debugger.Break();
+                    }
+                }
+            }
+            return list;
+        }
+        */
         public Dictionary<string, List<string>> LoadResource_MSBExceptions()
         {
             string[] file = File.ReadAllLines($@"{Directory.GetCurrentDirectory()}\Resources\MSB_Scaled_Obj_Exceptions.txt");

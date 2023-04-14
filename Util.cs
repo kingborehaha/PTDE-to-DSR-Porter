@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
 using SoulsFormats;
+using System.Reflection;
 
 namespace DSPorterUtil
 {
@@ -188,6 +189,55 @@ namespace DSPorterUtil
                 throw new InvalidDataException($"Could not apply ParamDef for {param.ParamType}. Row sizes do not match. Param: {bestRowsize}, Def: {bestDefRowSize}.");
             else
                 throw new Exception("Unhandled Apply ParamDef error.");
+        }
+
+        /// <summary>
+        /// Search an object's properties and return whichever object has the targeted property.
+        /// </summary>
+        /// <returns>Object that has the property, otherwise null.</returns>
+        public static object? FindPropertyObject(PropertyInfo prop, object obj, int classIndex = -1)
+        {
+            foreach (var p in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (p.MetadataToken == prop.MetadataToken)
+                    return obj;
+
+                if (p.PropertyType.IsNested)
+                {
+                    var retObj = FindPropertyObject(prop, p.GetValue(obj));
+                    if (retObj != null)
+                        return retObj;
+                }
+                else if (p.PropertyType.IsArray)
+                {
+                    var pType = p.PropertyType.GetElementType();
+                    if (pType.IsNested)
+                    {
+                        Array array = (Array)p.GetValue(obj);
+                        if (classIndex != -1)
+                        {
+                            var retObj = FindPropertyObject(prop, array.GetValue(classIndex));
+                            if (retObj != null)
+                                return retObj;
+                        }
+                        else
+                        {
+                            foreach (var arrayObj in array)
+                            {
+                                var retObj = FindPropertyObject(prop, arrayObj);
+                                if (retObj != null)
+                                    return retObj;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public static object? GetPropertyValue(PropertyInfo prop, object obj)
+        {
+            return prop.GetValue(FindPropertyObject(prop, obj));
         }
 
     }
