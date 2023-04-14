@@ -72,6 +72,7 @@ namespace DSRPorter
 
         private readonly List<long> _ffxWhitelist = new()
         {
+            // Bonfires
             90000, // bonfire
             90001, // bonfire
             90002, // bonfire
@@ -94,8 +95,12 @@ namespace DSRPorter
             90019, // bonfire
             90020, // bonfire
 
-            // Effects whitelisted because they won't Fuck Off in DSR like they do in PTDE
+            // Effects that don't end early enough in DSR
             22723, // tiny fireball (used for a billion things, including chaos parasite r2)
+            20012, // miasmic fog cast FFX
+
+            // Effects that ends too early in DSR
+            12701, // Man-serpent mage lingering spit (ends too early in DSR)
 
         };
         private readonly List<long> _ffxBlacklist = new()
@@ -204,13 +209,23 @@ namespace DSRPorter
                         {
                             ScaledObject? scaledObj = null;
 
-                            if (msbName == "m14_01_00_00" && p.ModelName == "o4830")
+                            if (msbName == "m14_01_00_00")
                             {
-                                if (p.Scale == new Vector3(16, 16, 16))
+                                // Demon statue turret
+                                if (p.ModelName == "o4830")
                                 {
-                                    // Ignore izalith statue turrets due to scaled collision making the turret not work.
-                                    OutputLog.Add($"Ignored Demon Statue Turret ({p.Name}) scaling.");
-                                    continue;
+                                    if (p.Scale == new Vector3(16, 16, 16))
+                                    {
+                                        // Ignore izalith statue turrets due to scaled collision making the turret not work.
+                                        OutputLog.Add($"Ignored Demon Statue Turret ({p.Name}) scaling.");
+                                        continue;
+                                    }
+                                }
+                                // Ceaseless lava object
+                                else if (p.ModelName == "o4500")
+                                {
+                                    p.LightID = 14;
+                                    p.ScatterID = 14;
                                 }
                             }
 
@@ -314,6 +329,22 @@ namespace DSRPorter
                                 p.Position = new Vector3(-119.8f, -70.593f, -27.5f);
                             else if (p.Name == "c3200_0002" && p.Position == new Vector3(-122.8f, -70.5f, -28.5f))
                                 p.Position = new Vector3(-122.8f, -70.650f, -28.5f);
+                        }
+                    }
+                }
+
+                foreach (var p in msb.Parts.MapPieces)
+                {
+                    if (Is_SOTE)
+                    {
+                        if (msbName == "m14_01_00_00")
+                        {
+                            // Lava fields
+                            if (p.ModelName == "m8001B1")
+                            {
+                                p.LightID = 14;
+                                p.ScatterID = 14;
+                            }
                         }
                     }
                 }
@@ -572,6 +603,8 @@ namespace DSRPorter
             }
         }
 
+
+
         private ConcurrentBag<string> _debugOutput = new();
         private void DSRPorter_TransferParams(string datapath, bool isDrawParam = false)
         {
@@ -743,9 +776,7 @@ namespace DSRPorter
                             PARAM.Row? row_vanilla = param_vanilla.Rows.Find(r => r.ID == row_ptde_modded.ID);
                             if (false && Is_SOTE && item.Key == "m14_LightScatteringBank")
                             {
-                                // Manual SOTE changes
-                                // m14: use default DSR values
-                                param_new_target.Rows.Add(row_new);
+                                // debug shit
                             }
                             else
                             {
@@ -760,11 +791,15 @@ namespace DSRPorter
                                     if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
                                     {
                                         // EXPERIMENTAL: use least shiny value
-                                        // May want this as an option for non-sote
+                                        // Seemingly may want this as an option for non-sote (perhaps only in cases of modified params)!!
                                         // envSpc_colA: use the smallest value (shininess)
+                                        // envDif_colA: use the smallest value (brightness refraction?)
                                         short moddedSpcA = (short)row_ptde_modded["envSpc_colA"].Value;
                                         short vanillaSpcA = (short)row_vanilla["envSpc_colA"].Value;
                                         short dsrSpcA = (short)row_new["envSpc_colA"].Value;
+                                        short moddedDifA = (short)row_ptde_modded["envDif_colA"].Value;
+                                        short vanillaDifA = (short)row_vanilla["envDif_colA"].Value;
+                                        short dsrDifA = (short)row_new["envDif_colA"].Value;
                                         OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
                                         if (dsrSpcA > moddedSpcA)
                                         {
@@ -774,6 +809,18 @@ namespace DSRPorter
                                         {
                                             row_new["envSpc_colA"].Value = dsrSpcA;
                                         }
+
+                                        // added this v2
+                                        if (dsrDifA > moddedDifA)
+                                        {
+                                            row_new["envDif_colA"].Value = moddedDifA;
+                                        }
+                                        else
+                                        {
+                                            row_new["envDif_colA"].Value = dsrDifA;
+                                        }
+                                        //
+
                                         param_new_target.Rows.Add(row_new);
                                     }
                                     else
@@ -1127,19 +1174,18 @@ namespace DSRPorter
                                     PTDELuaInfo.Goals.Add(dsrinfo);
                                 }
                             }
+                            /*
                             if (!file_new.Bytes.SequenceEqual(file_PTDE_Target.Bytes))
                             {
                                 Debugger.Break();
                             }
+                            */
                         }
                         else if (file_PTDE_Target.Name.ToUpper().Contains("GNL"))
                         {
                             LUAGNL DSRLuaGNL = LUAGNL.Read(file_new.Bytes);
                             LUAGNL PTDELuaGNL = LUAGNL.Read(file_PTDE_Target.Bytes);
-                            if (!file_new.Bytes.SequenceEqual(file_PTDE_Target.Bytes))
-                            {
-                                Debugger.Break();
-                            }
+
                             // Delete all LUAGNL
                             bnd_PTDE_Target.Files.Remove(file_PTDE_Target);
 
@@ -1352,31 +1398,33 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
+#if !true
+                Task.Run(() => DSRPorter_MSB()), // Done
                 Task.Run(() => DSRPorter_CHRBND()), // Done
                 Task.Run(() => DSRPorter_OBJBND()), // Done
-
-                /*
-                Task.Run(() => DSRPorter_LUABND()), // Done, luainfo and luagnl crash concerns though.
+                Task.Run(() => DSRPorter_LUABND()), // Done
                 Task.Run(() => DSRPorter_ANIBND()), // Done
                 Task.Run(() => DSRPorter_ESD()), // Done
-                Task.Run(() => DSRPorter_MSB()), // Done
                 Task.Run(() => DSRPorter_FFX()), // Done
-                Task.Run(() => DSRPorter_EMEVD()), // Done
                 Task.Run(() => DSRPorter_MSGBND()), // Done
+                Task.Run(() => DSRPorter_EMEVD()), // Done
 
                 Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
                 Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                 Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
 
                 Task.Run(() => DSRPorter_ObjTextures()), // Done
-                
+             
                 //
                 Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
                 Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
                 Task.Run(() => DSRPorter_GameParam()), // Done
                 Task.Run(() => DSRPorter_DrawParam()), // Done, needs manual adjustments for SOTE.
                 //
-                */
+#else
+                Task.Run(() => DSRPorter_MSGBND()), // Done
+#endif
+
             };
             var taskCount = taskList.Count;
             while (taskList.Any())
