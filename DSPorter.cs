@@ -109,6 +109,17 @@ namespace DSRPorter
             // Effects that ends too early in DSR
             12701, // Man-serpent mage lingering spit (ends too early in DSR)
 
+            // Bed of chaos
+            15411,
+            15412,
+            15413,
+            15414,
+            15415,
+            15416,
+
+            // Cragspider
+            13401, // fire whip
+
         };
         private List<long> _ffxBlacklist = new()
         {
@@ -550,11 +561,13 @@ namespace DSRPorter
                         ffx_PTDE.Wide = true;
                         file.Bytes = ffx_PTDE.Write();
                         portThisBND = true;
+                        OutputLog.Add($"FFX: Ported whitelist FFX \"{file.Name}\"");
                     }
                 }
                 if (portThisBND)
                 {
                     Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_DSR, dsrPath, CompressionType);
+                    OutputLog.Add($"FFX: Ported \"{fileName}.ffxbnd.dcx\" because it had whitelisted FFX");
                 }
             }
 
@@ -869,7 +882,28 @@ namespace DSRPorter
                                 }
                                 else
                                 {
-                                    if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
+                                    if (Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
+                                    {
+                                        OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
+                                        if (item.Key.StartsWith("m14"))
+                                        {
+                                            if (row_new.ID == 15)
+                                            {
+                                                // izalith city
+                                                row_new["sunA"].Value = (short)100;
+                                                row_new["reflectanceA"].Value = (short)100;
+                                                row_new["blendCoef"].Value = (short)70;
+                                            }
+                                            else if (row_new.ID == 30)
+                                            {
+                                                // izalith shortcut
+                                                row_new["sunA"].Value = (short)150;
+                                                row_new["reflectanceA"].Value = (short)100;
+                                            }
+                                        }
+                                        param_new_target.Rows.Add(row_new);
+                                    }
+                                    else if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
                                     {
                                         // EXPERIMENTAL: use least shiny value
                                         // Seemingly may want this as an option for non-sote (perhaps only in cases of modified params)!!
@@ -894,16 +928,22 @@ namespace DSRPorter
                                         // added this v2
                                         if (item.Key.StartsWith("m14"))
                                         {
-                                            if (row_new.ID == 7 || row_new.ID == 15)
+                                            if (row_new.ID == 7 || row_new.ID == 14)
                                             {
+                                                // lost izalith lava
+                                                row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
+                                                row_new["colA_d"].Value = (short)((short)row_new["colA_d"].Value * 0.6f);
+                                                //row_new["envDif_colA"].Value = (short)row_new["envDif_colA"].Value * 0.4f;
+                                                
                                                 if (dsrDifA > moddedDifA)
                                                 {
-                                                    row_new["envDif_colA"].Value = moddedDifA;
+                                                    row_new["envDif_colA"].Value = (short)(moddedDifA * 0.6f);
                                                 }
                                                 else
                                                 {
-                                                    row_new["envDif_colA"].Value = dsrDifA;
+                                                    row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
                                                 }
+                                                
                                             }
                                         }
                                         //
@@ -1005,6 +1045,41 @@ namespace DSRPorter
             OutputLog.Add($@"Finished: chr\*.chrbnd");
         }
 
+        private void ModifyTAE(BinderFile taeBinder)
+        {
+            // todo: make sure reading and writing c0000 tae is byte identical, i dunno if i trust it.
+
+            if (Is_SOTE && taeBinder.Name.ToLower().Contains("c0000"))
+            {
+                TAE3 tae = TAE3.Read(taeBinder.Bytes);
+
+                if (!taeBinder.Bytes.SequenceEqual(tae.Write()))
+                {
+                    throw new("tae wrote imperfectly!");
+                }
+
+                Debugger.Break();
+
+                // Modify root motion of c0000 jump animation
+                TAE3.Animation jumpAnim = tae.Animations.Find(e => e.AnimFileName == "a00_0900");
+
+                foreach (var animEvent in jumpAnim.Events)
+                {
+                    if (animEvent is TAE3.Event.EarlyJumptable earlyJT)
+                    {
+                        if (earlyJT.JumpTableID1 == 27)
+                        {
+                            Debugger.Break();
+                            animEvent.EndTime = 9/30;
+                            break;
+                        }
+                    }
+                }
+
+                //taeBinder.Bytes = tae.Write();
+            }
+        }
+
         /// <summary>
         /// Recursive func for porting bnd files used for objects and characters.
         /// Uses DSR .hkx files, but ports everything else.
@@ -1043,8 +1118,8 @@ namespace DSRPorter
                 if (file_old.Name.ToLower().EndsWith(".chrtpfbhd"))
                 {
                     // TODO: to properly support this, scan to see if there was a modified chrtpfBDT in the chr folder.
-                    // * If the BDT was unmodified, just use DSR BHD.
-                    // * if the BDT was modified, I need to support that with a new function & probably use the moddedPTDE bhd w/ adjustments so it doesnt look like shit.
+                    //// If the BDT was unmodified, just use DSR BHD.
+                    //// if the BDT was modified, I need to support that with a new function & probably use the moddedPTDE bhd w/ adjustments so it doesnt look like shit.
                     OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it).");
                     bnd_old.Files.Remove(file_old);
                     continue;
@@ -1079,6 +1154,13 @@ namespace DSRPorter
                         bnd_old.Files.Remove(file_old);
                     }
                 }
+                /*
+                // Disabled because tae3.cs sucks
+                else if (TAE3.Is(file_old.Bytes))
+                {
+                    ModifyTAE(file_old);
+                }
+                */
             }
 
             foreach (var file_new in bnd_new.Files)
@@ -1485,7 +1567,7 @@ namespace DSRPorter
             OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
             List<Task> taskList = new()
             {
-#if !true
+#if false
                 Task.Run(() => DSRPorter_MSB()), // Done
                 Task.Run(() => DSRPorter_CHRBND()), // Done
                 Task.Run(() => DSRPorter_OBJBND()), // Done
@@ -1509,8 +1591,7 @@ namespace DSRPorter
                 Task.Run(() => DSRPorter_DrawParam()), // Done
                 //
 #else
-                Task.Run(() => DSRPorter_FFX()), // Done
-                Task.Run(() => DSRPorter_EMEVD()), // Done
+                Task.Run(() => DSRPorter_ANIBND()), // Done
 #endif
 
             };
