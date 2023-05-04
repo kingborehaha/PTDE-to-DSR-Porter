@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoulsAssetPipeline", "SoulsAssetPipeline.csproj", "{65D3B0F3-CB34-43E4-A749-16D35C484233}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		DebugNF|Any CPU = DebugNF|Any CPU
+		DebugNF|x64 = DebugNF|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Debug|x64.ActiveCfg = Debug|x64
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Debug|x64.Build.0 = Debug|x64
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.DebugNF|Any CPU.ActiveCfg = DebugNF|Any CPU
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.DebugNF|Any CPU.Build.0 = DebugNF|Any CPU
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.DebugNF|x64.ActiveCfg = DebugNF|x64
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.DebugNF|x64.Build.0 = DebugNF|x64
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Release|x64.ActiveCfg = Release|x64
+		{65D3B0F3-CB34-43E4-A749-16D35C484233}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {223DA411-77F6-4535-8CF6-14EE18233A30}
+	EndGlobalSection
+EndGlobal

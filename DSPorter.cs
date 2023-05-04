@@ -8,6 +8,7 @@ using System.Numerics;
 using DSPorterUtil;
 using SoulsFormats;
 using SoulsFormatsExtensions;
+using SoulsAssetPipeline.Animation;
 
 /*
  * TODO
@@ -53,6 +54,8 @@ namespace DSRPorter
         public string DataPath_PTDE_Vanilla = "";
         public string DataPath_DSR = "";
 
+
+        public TAE.Template TaeTemplate = TAE.Template.ReadXMLFile(@$"{Directory.GetCurrentDirectory()}\Resources\TAE.Template.DS1.xml");
         public string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
         public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
@@ -60,6 +63,7 @@ namespace DSRPorter
         private ConcurrentBag<PARAMDEF> _paramdefs_dsr = new();
         private List<ScaledObject> _scaledObjects = new();
         private HashSet<string> _objsToPort = new();
+        public System.Runtime.ExceptionServices.ExceptionDispatchInfo? porterException = null;
 
         public ConcurrentBag<string> OutputLog = new();
 
@@ -128,7 +132,15 @@ namespace DSRPorter
             15293,
             20269,
             12714,
-            12711
+            12711,
+            //
+
+            // Fog gates
+            81210,
+            81412,
+            81413,
+            81700,
+            81800,
             //
         };
 
@@ -1047,36 +1059,38 @@ namespace DSRPorter
 
         private void ModifyTAE(BinderFile taeBinder)
         {
-            // todo: make sure reading and writing c0000 tae is byte identical, i dunno if i trust it.
+            TAE tae = null!;
+            bool write = false;
 
-            if (Is_SOTE && taeBinder.Name.ToLower().Contains("c0000"))
+            if (Is_SOTE &&
+                taeBinder.Name.ToLower().Contains("c0000") &&
+                taeBinder.Name.ToLower().Contains("a00.tae"))
             {
-                TAE3 tae = TAE3.Read(taeBinder.Bytes);
-
-                if (!taeBinder.Bytes.SequenceEqual(tae.Write()))
-                {
-                    throw new("tae wrote imperfectly!");
-                }
-
-                Debugger.Break();
+                tae = TAE.Read(taeBinder.Bytes);
+                tae.ApplyTemplate(TaeTemplate);
 
                 // Modify root motion of c0000 jump animation
-                TAE3.Animation jumpAnim = tae.Animations.Find(e => e.AnimFileName == "a00_0900");
+                var jumpAnim = tae.Animations.Find(e => e.ID == 900); // running jump
 
-                foreach (var animEvent in jumpAnim.Events)
+                if (jumpAnim != null)
                 {
-                    if (animEvent is TAE3.Event.EarlyJumptable earlyJT)
+                    foreach (var animEvent in jumpAnim.Events)
                     {
-                        if (earlyJT.JumpTableID1 == 27)
+                        if (animEvent.TypeName == "ActivateJumpTableEarly")
                         {
-                            Debugger.Break();
-                            animEvent.EndTime = 9/30;
-                            break;
+                            if ((short)animEvent.Parameters["JumpTableID_ToActivateEarly"] == 27)
+                            {
+                                animEvent.EndTime = 9f / 30f; // PTDE: 13/30. vanilla: 9/30
+                                write = true;
+                                break;
+                            }
                         }
                     }
                 }
-
-                //taeBinder.Bytes = tae.Write();
+            }
+            if (write)
+            {
+                taeBinder.Bytes = tae.Write();
             }
         }
 
@@ -1154,13 +1168,10 @@ namespace DSRPorter
                         bnd_old.Files.Remove(file_old);
                     }
                 }
-                /*
-                // Disabled because tae3.cs sucks
-                else if (TAE3.Is(file_old.Bytes))
+                else if (TAE.Is(file_old.Bytes))
                 {
                     ModifyTAE(file_old);
                 }
-                */
             }
 
             foreach (var file_new in bnd_new.Files)
@@ -1539,106 +1550,114 @@ namespace DSRPorter
         */
         public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
         {
-            if (Directory.Exists(DataPath_Output))
+            try
             {
-                var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNo);
-                if (result == DialogResult.Yes)
+                if (Directory.Exists(DataPath_Output))
                 {
-                    result = MessageBox.Show("Send to recycle bin?\n", "Recycle vs delete", MessageBoxButtons.YesNo);
+                    var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNo);
                     if (result == DialogResult.Yes)
                     {
-                        Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
-                            Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                            Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-                    }
-                    else
-                    {
-                        Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
-                            Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                            Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
+                        result = MessageBox.Show("Send to recycle bin?\n", "Recycle vs delete", MessageBoxButtons.YesNo);
+                        if (result == DialogResult.Yes)
+                        {
+                            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                                Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                        }
+                        else
+                        {
+                            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                                Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                                Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
+                        }
                     }
                 }
-            }
-            Directory.CreateDirectory(DataPath_Output);
-            DataPath_PTDE_Vanilla = ptdePath_Vanilla;
-            DataPath_PTDE_Mod = ptdePath_Mod;
-            DataPath_DSR = dsrPath;
-            
-            OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
-            List<Task> taskList = new()
-            {
+                Directory.CreateDirectory(DataPath_Output);
+                DataPath_PTDE_Vanilla = ptdePath_Vanilla;
+                DataPath_PTDE_Mod = ptdePath_Mod;
+                DataPath_DSR = dsrPath;
+
+                OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
+                List<Task> taskList = new()
+                {
 #if false
-                Task.Run(() => DSRPorter_MSB()), // Done
-                Task.Run(() => DSRPorter_CHRBND()), // Done
-                Task.Run(() => DSRPorter_OBJBND()), // Done
-                Task.Run(() => DSRPorter_LUABND()), // Done
-                Task.Run(() => DSRPorter_ANIBND()), // Done
-                Task.Run(() => DSRPorter_ESD()), // Done
-                Task.Run(() => DSRPorter_FFX()), // Done
-                Task.Run(() => DSRPorter_MSGBND()), // Done
-                Task.Run(() => DSRPorter_EMEVD()), // Done
+                    Task.Run(() => DSRPorter_MSB()), // Done
+                    Task.Run(() => DSRPorter_CHRBND()), // Done
+                    Task.Run(() => DSRPorter_OBJBND()), // Done
+                    Task.Run(() => DSRPorter_LUABND()), // Done
+                    Task.Run(() => DSRPorter_ANIBND()), // Done
+                    Task.Run(() => DSRPorter_ESD()), // Done
+                    Task.Run(() => DSRPorter_MSGBND()), // Done
+                    Task.Run(() => DSRPorter_EMEVD()), // Done
 
-                //Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
-                Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
-                Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
+                    //Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
+                    Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
+                    Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
 
-                Task.Run(() => DSRPorter_ObjTextures()), // Done
+                    Task.Run(() => DSRPorter_ObjTextures()), // Done
              
-                //
-                Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
-                Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
-                Task.Run(() => DSRPorter_GameParam()), // Done
-                Task.Run(() => DSRPorter_DrawParam()), // Done
-                //
+                    //
+                    Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
+                    Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
+                    Task.Run(() => DSRPorter_GameParam()), // Done
+                    Task.Run(() => DSRPorter_DrawParam()), // Done
+                    //
 #else
-                Task.Run(() => DSRPorter_ANIBND()), // Done
+                    Task.Run(() => DSRPorter_FFX()), // Done
+                    Task.Run(() => DSRPorter_ANIBND()), // Done
 #endif
 
-            };
-            var taskCount = taskList.Count;
-            while (taskList.Any())
-            {
-                Task[] taskArray = taskList.ToArray();
-                Task.WaitAny(taskArray);
-                foreach (var task in taskArray)
+                };
+                var taskCount = taskList.Count;
+                while (taskList.Any())
                 {
-                    if (task.IsCompleted)
+                    Task[] taskArray = taskList.ToArray();
+                    Task.WaitAny(taskArray);
+                    foreach (var task in taskArray)
                     {
-                        if (task.Exception != null)
+                        if (task.IsCompleted)
                         {
-                            throw task.Exception;
+                            if (task.Exception != null)
+                            {
+                                throw task.Exception;
+                            }
+                            _progressBar.Invoke(() => _progressBar.Increment(1 + 700 / taskCount));
+                            taskList.Remove(task);
                         }
-                        _progressBar.Invoke(() => _progressBar.Increment(1 + 700 / taskCount));
-                        taskList.Remove(task);
                     }
                 }
-            }
-            
-            if (Is_SOTE)
-            {
-                string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
-                foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))
+
+                if (Is_SOTE)
                 {
-                    var targetPath = $@"{DataPath_Output}\{path.Replace(manualPath, "")}";
-                    string fileName = Path.GetFileName(path);
-                    Directory.CreateDirectory(targetPath.Replace(fileName, ""));
-                    File.Copy(path, targetPath, true);
-                    OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
-                }
-                foreach (var obj in SOTEScaledObjectList)
-                {
-                    if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                    string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
+                    foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))
                     {
-                        Debugger.Break();
-                        MessageBox.Show($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
+                        var targetPath = $@"{DataPath_Output}\{path.Replace(manualPath, "")}";
+                        string fileName = Path.GetFileName(path);
+                        Directory.CreateDirectory(targetPath.Replace(fileName, ""));
+                        File.Copy(path, targetPath, true);
+                        OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
                     }
+                    foreach (var obj in SOTEScaledObjectList)
+                    {
+                        if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                        {
+                            Debugger.Break();
+                            MessageBox.Show($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
+                        }
+                    }
+                    SOTE_ScaledObjectAnimationBullshittery();
                 }
-                SOTE_ScaledObjectAnimationBullshittery();
+
+                LogUnportedFiles();
+
+                File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
             }
-
-            LogUnportedFiles();
-
-            File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
+            catch (Exception e)
+            {
+                // Capture exception to be reported later.
+                porterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
+            }
 
             _progressBar.Invoke(() => _progressBar.Value = _progressBar.Maximum);
         }

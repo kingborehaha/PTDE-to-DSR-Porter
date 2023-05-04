@@ -15,14 +15,17 @@
   <ItemGroup>
     <Compile Remove="DSLuaDecompiler\**" />
     <Compile Remove="LuaDecompilerCore\**" />
+    <Compile Remove="SoulsAssetPipeline\**" />
     <Compile Remove="SoulsFormatsExtensions\**" />
     <Compile Remove="SoulsFormats\**" />
     <EmbeddedResource Remove="DSLuaDecompiler\**" />
     <EmbeddedResource Remove="LuaDecompilerCore\**" />
+    <EmbeddedResource Remove="SoulsAssetPipeline\**" />
     <EmbeddedResource Remove="SoulsFormatsExtensions\**" />
     <EmbeddedResource Remove="SoulsFormats\**" />
     <None Remove="DSLuaDecompiler\**" />
     <None Remove="LuaDecompilerCore\**" />
+    <None Remove="SoulsAssetPipeline\**" />
     <None Remove="SoulsFormatsExtensions\**" />
     <None Remove="SoulsFormats\**" />
   </ItemGroup>
@@ -32,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="SoulsAssetPipeline\SoulsAssetPipeline\SoulsAssetPipeline.csproj" />
     <ProjectReference Include="SoulsFormatsExtensions\SoulsFormatsExtensions.csproj" />
     <ProjectReference Include="SoulsFormats\SoulsFormats.csproj" />
   </ItemGroup>
@@ -44,6 +48,9 @@
 
   <ItemGroup>
     <None Update="Resources\MSB_Scaled_Obj_Exceptions.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\TAE.Template.DS1.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

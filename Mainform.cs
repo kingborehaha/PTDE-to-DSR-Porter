@@ -31,33 +31,37 @@ namespace DSRPorter
             return;
         }
 
-        private async void Button_Activate_Click(object sender, EventArgs e)
+        private void Button_Activate_Click(object sender, EventArgs e)
         {
-            // Non-debug exceptions won't get caught because of the async void
-            ProgramProgressBar.Value = 0;
-            RunProgram(); 
+            Task.Run(() => RunProgram()); 
         }
 
-        private async Task RunProgram()
+        private void RunProgram()
         {
-            await Task.Run(() =>
+            ProgramProgressBar.Invoke(() => ProgramProgressBar.Value = 0);
+            Button_Activate.Invoke(() => Button_Activate.Enabled = false);
+
+            DSPorter porter = new(ProgramProgressBar);
+            porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
+
+            Button_Activate.Invoke(() => Button_Activate.Enabled = true);
+
+            System.Media.SystemSounds.Exclamation.Play();
+
+            if (porter.porterException == null)
             {
-                Button_Activate.Invoke(() => Button_Activate.Enabled = false);
-
-                DSPorter porter = new(ProgramProgressBar);
-                porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
-
-                Button_Activate.Invoke(() => Button_Activate.Enabled = true);
-                ProgramProgressBar.Invoke(() => ProgramProgressBar.Value = 0);
-
-                GC.Collect();
-
-                System.Media.SystemSounds.Exclamation.Play();
-
                 var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
                 if (result == DialogResult.Yes)
                     Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output file
-            });
+            }
+            else
+            {
+                var result = MessageBox.Show($"Porting process ran into an issue.\n\n" +
+                    $"{porter.porterException.SourceException.Message}\n" +
+                    $"{porter.porterException.SourceException.StackTrace}", "Error", MessageBoxButtons.OK);
+            }
+
+            GC.Collect();
         }
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)
