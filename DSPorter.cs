@@ -422,12 +422,8 @@ namespace DSRPorter
                 {
                     long fileID = GetFileIdFromName(file_PTDE_modded.Name);
 
-                    bool is_ffx = false;
-                    if (FXR1.Is(file_PTDE_modded.Bytes))
-                    {
-                        is_ffx = true;
-                        
-                    }
+                    bool is_ffx = FXR1.Is(file_PTDE_modded.Bytes);
+
                     var file_PTDE_vanilla = bnd_PTDE_vanilla.Files.Find(f => f.Name == file_PTDE_modded.Name);
 
                     if (file_PTDE_vanilla != null)
@@ -1578,36 +1574,41 @@ namespace DSRPorter
                 DataPath_DSR = dsrPath;
 
                 OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
-                List<Task> taskList = new()
+                List<Task> taskList = new();
+
+                if (true)
                 {
-#if false
-                    Task.Run(() => DSRPorter_MSB()), // Done
-                    Task.Run(() => DSRPorter_CHRBND()), // Done
-                    Task.Run(() => DSRPorter_OBJBND()), // Done
-                    Task.Run(() => DSRPorter_LUABND()), // Done
-                    Task.Run(() => DSRPorter_ANIBND()), // Done
-                    Task.Run(() => DSRPorter_ESD()), // Done
-                    Task.Run(() => DSRPorter_MSGBND()), // Done
-                    Task.Run(() => DSRPorter_EMEVD()), // Done
+                    taskList.AddRange(new List<Task>()
+                    {
+                        Task.Run(() => DSRPorter_MSB()),
+                        Task.Run(() => DSRPorter_CHRBND()),
+                        Task.Run(() => DSRPorter_OBJBND()),
+                        Task.Run(() => DSRPorter_LUABND()),
+                        Task.Run(() => DSRPorter_ANIBND()),
+                        Task.Run(() => DSRPorter_ESD()),
+                        Task.Run(() => DSRPorter_MSGBND()),
+                        Task.Run(() => DSRPorter_EMEVD()),
 
-                    //Task.Run(() => DSRPorter_GenericFiles(@"map\breakobj", "*.breakobj")),
-                    Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
-                    Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)), // Done
+                        Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
+                        Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)),
 
-                    Task.Run(() => DSRPorter_ObjTextures()), // Done
-             
-                    //
-                    Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
-                    Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
-                    Task.Run(() => DSRPorter_GameParam()), // Done
-                    Task.Run(() => DSRPorter_DrawParam()), // Done
-                    //
-#else
-                    Task.Run(() => DSRPorter_FFX()), // Done
-                    Task.Run(() => DSRPorter_ANIBND()), // Done
-#endif
+                        Task.Run(() => DSRPorter_ObjTextures()),
 
-                };
+                        //
+                        Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
+                        Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
+                        Task.Run(() => DSRPorter_GameParam()),
+                        Task.Run(() => DSRPorter_DrawParam()),
+                        //
+                    });
+}
+                else
+                {
+                    taskList.AddRange(new List<Task>()
+                    {
+                        Task.Run(() => DSRPorter_FFX()),
+                    });
+                }
                 var taskCount = taskList.Count;
                 while (taskList.Any())
                 {
