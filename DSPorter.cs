@@ -54,7 +54,6 @@ namespace DSRPorter
         public string DataPath_PTDE_Vanilla = "";
         public string DataPath_DSR = "";
 
-
         public TAE.Template TaeTemplate = TAE.Template.ReadXMLFile(@$"{Directory.GetCurrentDirectory()}\Resources\TAE.Template.DS1.xml");
         public string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
         public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
@@ -67,11 +66,8 @@ namespace DSRPorter
 
         public ConcurrentBag<string> OutputLog = new();
 
-        //public Dictionary<string, List<string>> ObjMapDictionary = new(); // Stores object in map info for the purpose of texture porting
-
         public const bool EnableScaledObjectAdjustments = false;
         public const bool Is_SOTE = true;
-        public const bool UseFfxWhitelist = false; // If true, only FFX in the whitelist will be ported to DSR. All other non-new FFX will be DSR.
         public bool UseDsrTextures = true;
 
         private readonly List<long> _ffxTpffWhitelist = new()
@@ -83,6 +79,26 @@ namespace DSRPorter
 
         private List<long> _ffxWhitelist = new()
         {
+            // Effects that don't end early enough in DSR
+            22723, // tiny fireball (used for a billion things, including chaos parasite r2)
+            20012, // miasmic fog cast FFX
+
+            // Effects that end too early in DSR
+            12701, // Man-serpent mage lingering spit
+
+            // Visual preference
+            
+            // Bed of chaos
+            15411,
+            15412,
+            15413,
+            15414,
+            15415,
+            15416,
+
+            // Cragspider
+            13401, // fire whip
+
             // Bonfires
             90000, // bonfire
             90001, // bonfire
@@ -105,24 +121,7 @@ namespace DSRPorter
             90018, // bonfire
             90019, // bonfire
             90020, // bonfire
-
-            // Effects that don't end early enough in DSR
-            22723, // tiny fireball (used for a billion things, including chaos parasite r2)
-            20012, // miasmic fog cast FFX
-
-            // Effects that ends too early in DSR
-            12701, // Man-serpent mage lingering spit (ends too early in DSR)
-
-            // Bed of chaos
-            15411,
-            15412,
-            15413,
-            15414,
-            15415,
-            15416,
-
-            // Cragspider
-            13401, // fire whip
+            
 
         };
         private List<long> _ffxBlacklist = new()
@@ -238,7 +237,6 @@ namespace DSRPorter
                         else
                         {
                             ScaledObject? scaledObj = null;
-
                             if (msbName == "m14_01_00_00")
                             {
                                 // Demon statue turret
@@ -378,6 +376,27 @@ namespace DSRPorter
                         }
                     }
                 }
+
+                if (Is_SOTE)
+                {
+                    if (msbName == "m15_00_00_00")
+                    {
+                        // SOTE Sen's Fortress traps
+                        var trapffx1 = msb.Events.SFX.Find(e => e.Name == "SFX new trap 1");
+                        var trapffx2 = msb.Events.SFX.Find(e => e.Name == "SFX new trap 2");
+                        var trapRegion2 = msb.Regions.Regions.Find(e => e.Name == "SFX region new trap 2");
+
+                        if (trapffx1 == null || trapffx2 == null || trapRegion2 == null)
+                        {
+                            throw new Exception("Couldn't find m15_00_00_00 SOTE new trap FFX or regions by name.");
+                        }
+
+                        trapffx1.EffectID = 815;
+                        trapffx2.EffectID = 815;
+                        trapRegion2.Position = new Vector3(74.524f, 26.275f, 266.305f);
+                    }
+                }
+
                 Util.WritePortedSoulsFile(msb, DataPath_PTDE_Mod, path);
             }
             Debug.WriteLine("Finished: MSB");
@@ -432,7 +451,7 @@ namespace DSRPorter
 
                         if (_ffxTpffWhitelist.Contains(GetFileIdFromName(file_PTDE_vanilla.Name)))
                         {
-                            Debugger.Break();
+                            throw new NotSupportedException();
                         }
                         else
                         {
@@ -884,13 +903,29 @@ namespace DSRPorter
                             {
                                 if (row_new == null || row_vanilla == null)
                                 {
-                                    Debugger.Break();
                                     TransferParamRow(row_ptde_modded, row_dsr_target);
                                     param_new_target.Rows.Add(row_dsr_target);
                                 }
                                 else
                                 {
-                                    if (Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
+                                    if (Is_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
+                                    {
+                                        if (item.Key.StartsWith("m13"))
+                                        {
+                                            // TOTG darkness
+                                            if (row_new.ID == 14)
+                                            {
+                                                row_new["dwindleEnd"].Value = 10.0f; // From 8
+                                                row_new["colA"].Value = 180.0f; // From 170
+                                            }
+                                            else if (row_new.ID == 44)
+                                            {
+                                                row_new["dwindleEnd"].Value = 14.0f; // From 12
+                                            }
+                                        }
+                                        param_new_target.Rows.Add(row_new);
+                                    }
+                                    else if (Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
                                     {
                                         OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
                                         if (item.Key.StartsWith("m14"))
@@ -942,7 +977,7 @@ namespace DSRPorter
                                                 row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
                                                 row_new["colA_d"].Value = (short)((short)row_new["colA_d"].Value * 0.6f);
                                                 //row_new["envDif_colA"].Value = (short)row_new["envDif_colA"].Value * 0.4f;
-                                                
+
                                                 if (dsrDifA > moddedDifA)
                                                 {
                                                     row_new["envDif_colA"].Value = (short)(moddedDifA * 0.6f);
@@ -951,7 +986,7 @@ namespace DSRPorter
                                                 {
                                                     row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
                                                 }
-                                                
+
                                             }
                                         }
                                         //
@@ -1350,12 +1385,6 @@ namespace DSRPorter
                                     PTDELuaInfo.Goals.Add(dsrinfo);
                                 }
                             }
-                            /*
-                            if (!file_new.Bytes.SequenceEqual(file_PTDE_Target.Bytes))
-                            {
-                                Debugger.Break();
-                            }
-                            */
                         }
                         else if (file_PTDE_Target.Name.ToUpper().Contains("GNL"))
                         {
@@ -1368,7 +1397,7 @@ namespace DSRPorter
                         }
                         else
                         {
-                            Debugger.Break();
+                            OutputLog.Add($@"Unsupported file type was skipped: {Path.GetFileName(bndPath_old)}\{Path.GetFileName(file_PTDE_Target.Name)}");
                         }
                     }
                 }
@@ -1490,8 +1519,8 @@ namespace DSRPorter
                         BinderFile? vFile = bnd_vanilla.Files.Find(e => e.Name.Replace(sObj.OGModelName, sObj.NewModelName) == objbndFile.Name);
                         if (vFile == null)
                         {
-                            // this should be the root seal (o4610 -> o4612). apparently vanilla anims work fine for that so don't worry about it.
-                            Debugger.Break();
+                            // I don't think this triggers ATM.
+                            // old comment: this should be the root seal (o4610 -> o4612). apparently vanilla anims work fine for that so don't worry about it.
                             continue;
 
                         }
@@ -1508,7 +1537,7 @@ namespace DSRPorter
                                     var vAnim = vBND.Files.Find(e => e.Name.Replace(sObj.OGModelName, sObj.NewModelName) == f.Name);
                                     if (vAnim == null)
                                     {
-                                        throw new Exception("SOTE: Animation in modded scaled object objbnd cannot be found in vanilla DSR animations This shouldn't happen!");
+                                        throw new Exception("SOTE: Animation in modded scaled object objbnd cannot be found in vanilla DSR animations. This shouldn't happen!");
                                     }
                                     f.Bytes = vAnim.Bytes;
                                 }
@@ -1588,6 +1617,7 @@ namespace DSRPorter
                         Task.Run(() => DSRPorter_ESD()),
                         Task.Run(() => DSRPorter_MSGBND()),
                         Task.Run(() => DSRPorter_EMEVD()),
+                        Task.Run(() => DSRPorter_FFX()),
 
                         Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
                         Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)),
@@ -1601,7 +1631,7 @@ namespace DSRPorter
                         Task.Run(() => DSRPorter_DrawParam()),
                         //
                     });
-}
+                }
                 else
                 {
                     taskList.AddRange(new List<Task>()
@@ -1643,7 +1673,6 @@ namespace DSRPorter
                     {
                         if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
                         {
-                            Debugger.Break();
                             MessageBox.Show($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
                         }
                     }
