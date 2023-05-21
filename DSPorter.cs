@@ -79,6 +79,19 @@ namespace DSRPorter
 
         private List<long> _ffxWhitelist = new()
         {
+
+            // For baby skeleton poison AOE (which uses toxic fog effect)
+            20117, // poison fog initial
+            20118, // toxic fog initial
+            20119, // acid surge initial
+            /*
+            // Then for (color) consistency with initial ffxs
+            // Nah, they look quite a bit worse. color consistency isn't worth it.
+            20217, // poison fog lingering
+            20218, // toxic fog lingering
+            20219, // acid surge lingering
+            */
+
             // Effects that don't end early enough in DSR
             22723, // tiny fireball (used for a billion things, including chaos parasite r2)
             20012, // miasmic fog cast FFX
@@ -895,114 +908,101 @@ namespace DSRPorter
 
                             PARAM.Row? row_new = paramRows_new.Find(r => r.ID == row_ptde_modded.ID);
                             PARAM.Row? row_vanilla = param_vanilla.Rows.Find(r => r.ID == row_ptde_modded.ID);
-                            if (false && Is_SOTE && item.Key == "m14_LightScatteringBank")
+                            if (row_new == null || row_vanilla == null)
                             {
-                                // debug shit
+                                TransferParamRow(row_ptde_modded, row_dsr_target);
+                                param_new_target.Rows.Add(row_dsr_target);
+                                continue;
                             }
-                            else
+
+                            if (Is_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
                             {
-                                if (row_new == null || row_vanilla == null)
+                                if (item.Key.StartsWith("m13"))
                                 {
-                                    TransferParamRow(row_ptde_modded, row_dsr_target);
-                                    param_new_target.Rows.Add(row_dsr_target);
+                                    // TOTG darkness
+                                    if (row_new.ID == 14)
+                                    {
+                                        row_new["dwindleEnd"].Value = 10.0f; // From 8
+                                        row_new["colA"].Value = 180.0f; // From 170
+                                    }
+                                    else if (row_new.ID == 44)
+                                    {
+                                        row_new["dwindleEnd"].Value = 14.0f; // From 12
+                                    }
+                                }
+                            }
+                            else if (Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
+                            {
+                                OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
+                                if (item.Key.StartsWith("m14"))
+                                {
+                                    if (row_new.ID == 15)
+                                    {
+                                        // izalith city
+                                        row_new["sunA"].Value = (short)100;
+                                        row_new["reflectanceA"].Value = (short)100;
+                                        row_new["blendCoef"].Value = (short)70;
+                                    }
+                                    else if (row_new.ID == 30)
+                                    {
+                                        // izalith shortcut
+                                        row_new["sunA"].Value = (short)150;
+                                        row_new["reflectanceA"].Value = (short)100;
+                                    }
+                                }
+                            }
+                            else if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
+                            {
+                                // EXPERIMENTAL: use least shiny value
+                                // Seemingly may want this as an option for non-sote (perhaps only in cases of modified params)!!
+                                // envSpc_colA: use the smallest value (shininess)
+                                // envDif_colA: use the smallest value (brightness refraction?)
+                                short moddedSpcA = (short)row_ptde_modded["envSpc_colA"].Value;
+                                short vanillaSpcA = (short)row_vanilla["envSpc_colA"].Value;
+                                short dsrSpcA = (short)row_new["envSpc_colA"].Value;
+                                short moddedDifA = (short)row_ptde_modded["envDif_colA"].Value;
+                                short vanillaDifA = (short)row_vanilla["envDif_colA"].Value;
+                                short dsrDifA = (short)row_new["envDif_colA"].Value;
+                                OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
+                                if (dsrSpcA > moddedSpcA)
+                                {
+                                    row_new["envSpc_colA"].Value = moddedSpcA;
                                 }
                                 else
                                 {
-                                    if (Is_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
+                                    row_new["envSpc_colA"].Value = dsrSpcA;
+                                }
+
+                                // added this v2
+                                if (item.Key.StartsWith("m14"))
+                                {
+                                    if (row_new.ID == 7 || row_new.ID == 14)
                                     {
-                                        if (item.Key.StartsWith("m13"))
+                                        // lost izalith lava
+                                        row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
+                                        row_new["colA_d"].Value = (short)((short)row_new["colA_d"].Value * 0.6f);
+                                        //row_new["envDif_colA"].Value = (short)row_new["envDif_colA"].Value * 0.4f;
+
+                                        if (dsrDifA > moddedDifA)
                                         {
-                                            // TOTG darkness
-                                            if (row_new.ID == 14)
-                                            {
-                                                row_new["dwindleEnd"].Value = 10.0f; // From 8
-                                                row_new["colA"].Value = 180.0f; // From 170
-                                            }
-                                            else if (row_new.ID == 44)
-                                            {
-                                                row_new["dwindleEnd"].Value = 14.0f; // From 12
-                                            }
-                                        }
-                                        param_new_target.Rows.Add(row_new);
-                                    }
-                                    else if (Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
-                                    {
-                                        OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
-                                        if (item.Key.StartsWith("m14"))
-                                        {
-                                            if (row_new.ID == 15)
-                                            {
-                                                // izalith city
-                                                row_new["sunA"].Value = (short)100;
-                                                row_new["reflectanceA"].Value = (short)100;
-                                                row_new["blendCoef"].Value = (short)70;
-                                            }
-                                            else if (row_new.ID == 30)
-                                            {
-                                                // izalith shortcut
-                                                row_new["sunA"].Value = (short)150;
-                                                row_new["reflectanceA"].Value = (short)100;
-                                            }
-                                        }
-                                        param_new_target.Rows.Add(row_new);
-                                    }
-                                    else if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
-                                    {
-                                        // EXPERIMENTAL: use least shiny value
-                                        // Seemingly may want this as an option for non-sote (perhaps only in cases of modified params)!!
-                                        // envSpc_colA: use the smallest value (shininess)
-                                        // envDif_colA: use the smallest value (brightness refraction?)
-                                        short moddedSpcA = (short)row_ptde_modded["envSpc_colA"].Value;
-                                        short vanillaSpcA = (short)row_vanilla["envSpc_colA"].Value;
-                                        short dsrSpcA = (short)row_new["envSpc_colA"].Value;
-                                        short moddedDifA = (short)row_ptde_modded["envDif_colA"].Value;
-                                        short vanillaDifA = (short)row_vanilla["envDif_colA"].Value;
-                                        short dsrDifA = (short)row_new["envDif_colA"].Value;
-                                        OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
-                                        if (dsrSpcA > moddedSpcA)
-                                        {
-                                            row_new["envSpc_colA"].Value = moddedSpcA;
+                                            row_new["envDif_colA"].Value = (short)(moddedDifA * 0.6f);
                                         }
                                         else
                                         {
-                                            row_new["envSpc_colA"].Value = dsrSpcA;
+                                            row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
                                         }
 
-                                        // added this v2
-                                        if (item.Key.StartsWith("m14"))
-                                        {
-                                            if (row_new.ID == 7 || row_new.ID == 14)
-                                            {
-                                                // lost izalith lava
-                                                row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
-                                                row_new["colA_d"].Value = (short)((short)row_new["colA_d"].Value * 0.6f);
-                                                //row_new["envDif_colA"].Value = (short)row_new["envDif_colA"].Value * 0.4f;
-
-                                                if (dsrDifA > moddedDifA)
-                                                {
-                                                    row_new["envDif_colA"].Value = (short)(moddedDifA * 0.6f);
-                                                }
-                                                else
-                                                {
-                                                    row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
-                                                }
-
-                                            }
-                                        }
-                                        //
-
-                                        param_new_target.Rows.Add(row_new);
-                                    }
-                                    else
-                                    {
-                                        // Default
-                                        OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
-                                        param_new_target.Rows.Add(row_new);
                                     }
                                 }
                             }
+                            else
+                            {
+                                // Default
+                                OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
+                            }
+                            param_new_target.Rows.Add(row_new);
                         }
-                        else
+                        else // isGameParam
                         {
                             // GameParam
                             TransferParamRow(row_ptde_modded, row_dsr_target);
@@ -1017,7 +1017,11 @@ namespace DSRPorter
                             row["enable_pvp"].Value = (byte)1;
                         }
                     }
-
+                    /*
+                    if (Is_SOTE && param_old.ParamType == "BULLET_PARAM_ST")
+                    {
+                    }
+                    */
                     if (orderRows)
                     param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
                 });
