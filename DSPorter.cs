@@ -56,6 +56,7 @@ namespace DSRPorter
 
         public TAE.Template TaeTemplate = TAE.Template.ReadXMLFile(@$"{Directory.GetCurrentDirectory()}\Resources\TAE.Template.DS1.xml");
         public string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
+        public string LuaCompilationPath = $@"{Directory.GetCurrentDirectory()}\lua";
         public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
         private ConcurrentBag<PARAMDEF> _paramdefs_ptde = new();
@@ -67,7 +68,6 @@ namespace DSRPorter
         public ConcurrentBag<string> OutputLog = new();
 
         public const bool EnableScaledObjectAdjustments = false;
-        public const bool Is_SOTE = true;
         public bool UseDsrTextures = true;
 
         private readonly List<long> _ffxTpffWhitelist = new()
@@ -170,15 +170,15 @@ namespace DSRPorter
         {
             //new ScaledObject("o1413", "o1422", new Vector3( 1.0f,    1.5f,   1.0f)), // taurus arena blockers. removed in favor of enemy-only collision
             //new ScaledObject("o1413", "o1423", new Vector3( 1.0f,    2.0f,   1.0f)), // taurus arena blockers. removed in favor of enemy-only collision
-            new ScaledObject("o1312", "o1324", new Vector3( 1.36f,   1.83f,  0.95f)),
-            new ScaledObject("o8300", "o8301", new Vector3( 0.5f,    0.5f,   0.5f)),
-            new ScaledObject("o2403", "o2404", new Vector3( 1.5f,    1.5f,   1.5f)),
-            new ScaledObject("o3010", "o3012", new Vector3( 0.5f,    0.5f,   0.5f)),
+            new ScaledObject("o1312", "o1324", new Vector3( 1.36f,   1.83f,  0.95f)), // m12_00 door
+            new ScaledObject("o8300", "o8301", new Vector3( 0.5f,    0.5f,   0.5f)), // m12_01 NG+ door
+            new ScaledObject("o2403", "o2404", new Vector3( 1.5f,    1.5f,   1.5f)), // m12_01 respite lantern healer
+            new ScaledObject("o3010", "o3012", new Vector3( 0.5f,    0.5f,   0.5f)), // m12_01 respite pain device
             //
             //new ScaledObject("o1419", "o1424", new Vector3( 0.5f,    1.0f,   1.0f)), // Adjusted due to o1413 removals
-            new ScaledObject("o1419", "o1422", new Vector3( 0.5f,    1.0f,   1.0f)),
+            new ScaledObject("o1419", "o1422", new Vector3( 0.5f,    1.0f,   1.0f)), // m13_02 fog gate?
             //
-            new ScaledObject("o4510", "o4511", new Vector3( 1.6f,    1.6f,   1.6f)),
+            new ScaledObject("o4510", "o4511", new Vector3( 1.6f,    1.6f,   1.6f)), // m14_01 
             //new ScaledObject("o4830", "o4831", new Vector3(16.0f,   16.0f,  16.0f)), // giant demon statue turrets. Removed because I want collision to NOT scale with those since they interfere with the turret.
             new ScaledObject("o8540", "o8545", new Vector3( 2.0f,    2.0f,   2.0f)),
             new ScaledObject("o6700", "o6701", new Vector3( 2.3f,    1.5f,   1.0f)),
@@ -224,7 +224,7 @@ namespace DSRPorter
                 {
                     if (msb_vanilla.Models.Objects.Find(e => e.Name == model.Name) == null)
                     {
-                        if (Is_SOTE)
+                        if (DSPorterSettings.IS_SOTE)
                         {
                             if (model.Name.Contains("4203"))
                             {
@@ -242,7 +242,7 @@ namespace DSRPorter
                     }
                     else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                     {
-                        if (!Is_SOTE)
+                        if (!DSPorterSettings.IS_SOTE)
                         {
                             OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
                             p.Scale = Vector3.One;
@@ -376,7 +376,7 @@ namespace DSRPorter
 
                 foreach (var p in msb.Parts.MapPieces)
                 {
-                    if (Is_SOTE)
+                    if (DSPorterSettings.IS_SOTE)
                     {
                         if (msbName == "m14_01_00_00")
                         {
@@ -390,7 +390,7 @@ namespace DSRPorter
                     }
                 }
 
-                if (Is_SOTE)
+                if (DSPorterSettings.IS_SOTE)
                 {
                     if (msbName == "m15_00_00_00")
                     {
@@ -783,7 +783,7 @@ namespace DSRPorter
                         {
                             // DSR defs can't handle this, but it's all default values in PTDE so I doubt it matters
                         }
-                        else if (Is_SOTE
+                        else if (DSPorterSettings.IS_SOTE
                             && (item.Key.StartsWith("s18_1") || item.Key.StartsWith("m18_1")))
                         {
                             // Those drawparams I added to SOTE but never used
@@ -838,7 +838,7 @@ namespace DSRPorter
                                 param_new_target.Rows.Add(newObjRow);
                             }
                         }
-                        else if (Is_SOTE)
+                        else if (DSPorterSettings.IS_SOTE)
                         {
                             orderRows = true;
                             foreach (var scaledObj in SOTEScaledObjectList)
@@ -871,7 +871,7 @@ namespace DSRPorter
                                 param_new_target.Rows.Add(newObjRow);
                             }
                         }
-                        else if (Is_SOTE)
+                        else if (DSPorterSettings.IS_SOTE)
                         {
                             orderRows = true;
                             foreach (var scaledObj in SOTEScaledObjectList)
@@ -915,7 +915,7 @@ namespace DSRPorter
                                 continue;
                             }
 
-                            if (Is_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
+                            if (DSPorterSettings.IS_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
                             {
                                 if (item.Key.StartsWith("m13"))
                                 {
@@ -931,7 +931,7 @@ namespace DSRPorter
                                     }
                                 }
                             }
-                            else if (Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
+                            else if (DSPorterSettings.IS_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
                             {
                                 OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
                                 if (item.Key.StartsWith("m14"))
@@ -951,7 +951,7 @@ namespace DSRPorter
                                     }
                                 }
                             }
-                            else if (Is_SOTE && param_old.ParamType == "LIGHT_BANK")
+                            else if (DSPorterSettings.IS_SOTE && param_old.ParamType == "LIGHT_BANK")
                             {
                                 // EXPERIMENTAL: use least shiny value
                                 // Seemingly may want this as an option for non-sote (perhaps only in cases of modified params)!!
@@ -1010,7 +1010,7 @@ namespace DSRPorter
                         }
                     }
 
-                    if (Is_SOTE && param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
+                    if (DSPorterSettings.IS_SOTE && param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
                     {
                         foreach (var row in param_new_target.Rows)
                         {
@@ -1018,7 +1018,7 @@ namespace DSRPorter
                         }
                     }
                     /*
-                    if (Is_SOTE && param_old.ParamType == "BULLET_PARAM_ST")
+                    if (DSPorterSettings.IS_SOTE && param_old.ParamType == "BULLET_PARAM_ST")
                     {
                     }
                     */
@@ -1097,7 +1097,7 @@ namespace DSRPorter
             TAE tae = null!;
             bool write = false;
 
-            if (Is_SOTE &&
+            if (DSPorterSettings.IS_SOTE &&
                 taeBinder.Name.ToLower().Contains("c0000") &&
                 taeBinder.Name.ToLower().Contains("a00.tae"))
             {
@@ -1143,7 +1143,7 @@ namespace DSRPorter
                     file_old.Name = file_old.Name.Replace("win32", "x64");
                     if (bnd_new.Files.Find(e => e.Name == file_old.Name) == null)
                     {
-                        if (Is_SOTE)
+                        if (DSPorterSettings.IS_SOTE)
                         {
                             if (file_old.Name == @"N:\FRPG\data\Model\chr\c5250\hkxx64\a01_3029.hkx")
                             {
@@ -1181,7 +1181,7 @@ namespace DSRPorter
                     BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
                     if (file_new == null)
                     {
-                        if (Is_SOTE && file_old.Name.Contains("6010"))
+                        if (DSPorterSettings.IS_SOTE && file_old.Name.Contains("6010"))
                         {
                             return;
                         }
@@ -1333,6 +1333,41 @@ namespace DSRPorter
             Debug.WriteLine("Finished: Generic BNDs");
             OutputLog.Add($@"Finished: {directory}\{searchPattern}");
         }
+        private byte[] CompileLuaBytes(byte[] bytes)
+        {
+            //Directory.CreateDirectory($@"{LuaCompilationPath}\in");
+            //Directory.CreateDirectory($@"{LuaCompilationPath}\out");
+
+            // Save bytes to working dir
+            string inputPath = $@"{LuaCompilationPath}\lua.in";
+            File.WriteAllBytes(inputPath, bytes);
+
+            // Use ProcessStartInfo class
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.CreateNoWindow = true;
+            startInfo.UseShellExecute = true;
+            startInfo.RedirectStandardInput = false;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.WorkingDirectory = LuaCompilationPath;
+            startInfo.FileName = $@"luac50.exe";
+            startInfo.Arguments = $" -s -l -o \"lua.out\" \"{inputPath}\"";
+
+            // Start the process with the info we specified.
+            // Call WaitForExit and then the using statement will close.
+            using (Process exeProcess = Process.Start(startInfo))
+            {
+                exeProcess.WaitForExit();
+            }
+
+            /*
+            // 90% sure I don't want this, as bigger file sizer != memory used (and plain text will definitely occupy more than byte code)
+            if (File.ReadAllBytes($@"{Directory.GetCurrentDirectory()}\lua.out").Length > bytes.Length)
+            {
+                return bytes;
+            }
+            */
+            return File.ReadAllBytes($@"{LuaCompilationPath}\lua.out");
+        }
 
         private void DSRPorter_LUABND()
         {
@@ -1353,18 +1388,19 @@ namespace DSRPorter
                 foreach (var file_PTDE_Target in bnd_PTDE_Target.Files.ToList())
                 {
                     file_PTDE_Target.Name = file_PTDE_Target.Name.Replace("win32", "x64");
-                    if (file_PTDE_Target.Name.ToLower().EndsWith(".lua"))
+                    if (file_PTDE_Target.Name.ToUpper().EndsWith(".LUA"))
                     {
                         var luaHeader = file_PTDE_Target.Bytes[..4];
                         if (luaHeader.SequenceEqual(new byte[4] { 0x1B, 0x4C, 0x75, 0x61 }))
                         {
                             // This is compiled lua. 32 bit compiled lua cannot be used in DSR, so use DSR instead.
+
                             BinderFile? file_DSR = files_DSR_list.Find(e => e.Name == file_PTDE_Target.Name);
                             if (file_DSR == null)
                             {
                                 MessageBox.Show($"Error: \"{file_PTDE_Target.Name}\" is both compiled and cannot be found in DSR data" +
                                     $"\n\nIf this is a new lua file, please provide decompiled lua instead. Otherwise, fix DSR version being unfindable (name must be identical)."
-                                    , "Error: LuaBND porting cancelled", MessageBoxButtons.OK);
+                                    , "luaBND porting cancelled", MessageBoxButtons.OK);
                                 return;
                             }
                             file_PTDE_Target.Bytes = file_DSR.Bytes;
@@ -1372,6 +1408,19 @@ namespace DSRPorter
                         else
                         {
                             // This .lua file is not compiled. Can be used in DSR safely.
+
+                            if (DSPorterSettings.Setting_CompileLua)
+                            {
+                                try
+                                {
+                                    file_PTDE_Target.Bytes = CompileLuaBytes(file_PTDE_Target.Bytes);
+                                }
+                                catch(Exception e)
+                                {
+                                    Debugger.Break();
+                                    OutputLog.Add($"Could not compile lua AI: {e.Message}. Decompiled lua used instead.");
+                                }
+                            }
                             count++;
                         }
                     }
@@ -1392,8 +1441,8 @@ namespace DSRPorter
                         }
                         else if (file_PTDE_Target.Name.ToUpper().Contains("GNL"))
                         {
-                            LUAGNL DSRLuaGNL = LUAGNL.Read(file_new.Bytes);
-                            LUAGNL PTDELuaGNL = LUAGNL.Read(file_PTDE_Target.Bytes);
+                            //LUAGNL DSRLuaGNL = LUAGNL.Read(file_new.Bytes);
+                            //LUAGNL PTDELuaGNL = LUAGNL.Read(file_PTDE_Target.Bytes);
 
                             // Delete all LUAGNL
                             bnd_PTDE_Target.Files.Remove(file_PTDE_Target);
@@ -1475,7 +1524,7 @@ namespace DSRPorter
             TexturePorter texPorter = new(this);
             int progressBarTotal = 280;
 
-            if (Is_SOTE)
+            if (DSPorterSettings.IS_SOTE)
             {
                 progressBarTotal /= 2;
                 foreach (var scaledObj in SOTEScaledObjectList)
@@ -1609,7 +1658,7 @@ namespace DSRPorter
                 OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                 List<Task> taskList = new();
 
-                if (true)
+                if (false)
                 {
                     taskList.AddRange(new List<Task>()
                     {
@@ -1640,7 +1689,7 @@ namespace DSRPorter
                 {
                     taskList.AddRange(new List<Task>()
                     {
-                        Task.Run(() => DSRPorter_FFX()),
+                        Task.Run(() => DSRPorter_LUABND()),
                     });
                 }
                 var taskCount = taskList.Count;
@@ -1662,7 +1711,7 @@ namespace DSRPorter
                     }
                 }
 
-                if (Is_SOTE)
+                if (DSPorterSettings.IS_SOTE)
                 {
                     string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
                     foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))

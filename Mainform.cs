@@ -20,6 +20,18 @@ namespace DSRPorter
         {
             CheckEnableActivateButton();
             this.Text = ProgramTitle;
+
+
+
+            DSPorterSettings.Setting_CompileLua = setting_CompileLua.Checked;
+
+
+
+
+            if (DSPorterSettings.IS_SOTE)
+            {
+                MessageBox.Show("Program is currently in SOTE mode. Change \"IS_SOTE\" bool in code or build RELEASE instead of DEBUG.", "Notice", MessageBoxButtons.OK);
+            }
         }
 
         private void CheckEnableActivateButton()
@@ -33,7 +45,7 @@ namespace DSRPorter
 
         private void Button_Activate_Click(object sender, EventArgs e)
         {
-            Task.Run(() => RunProgram()); 
+            Task.Run(() => RunProgram());
         }
 
         private void RunProgram()
@@ -95,6 +107,11 @@ namespace DSRPorter
             FolderBrowser_PTDE_Mod.SelectedPath = ptdePath;
             FolderBrowser_DSR.SelectedPath = dsrPath;
             CheckEnableActivateButton();
+        }
+
+        private void setting_CompileLua_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.Setting_CompileLua = setting_CompileLua.Checked;
         }
     }
 }

@@ -69,7 +69,7 @@ namespace DSRPorter
                     dynamic vanillaVal = ptdeVanillaCell.Value;
                     dynamic moddedVal = ptdeModdedCell.Value;
 
-                    if (Is_SOTE && dsrCell.Def.InternalName.ToLower().Contains("dwindle"))
+                    if (DSPorterSettings.IS_SOTE && dsrCell.Def.InternalName.ToLower().Contains("dwindle"))
                     {
                         dsrCell.Value = moddedVal;
                         continue;
@@ -257,6 +257,35 @@ namespace DSRPorter
                 output[map].Add(name);
             }
             return output;
+        }
+
+        /// <summary>
+        /// Compares two files from two provided paths and calculates if they are different.
+        /// </summary>
+        /// <returns>True if files are identical, false otherwise.</returns>
+        public static bool CompareFiles(string filePath1, string filePath2)
+        {
+            FileInfo fInfo1 = new(filePath1);
+            FileInfo fInfo2 = new(filePath2);
+            if (fInfo1.Length != fInfo2.Length)
+                return false;
+
+            byte[] b1 = new byte[1024];
+            byte[] b2 = new byte[1024];
+            var FS1 = fInfo1.OpenRead();
+            var FS2 = fInfo2.OpenRead();
+            bool isEqual = true;
+
+            while (FS1.Read(b1, 0, 1024) > 0)
+            {
+                FS2.Read(b2, 0, 1024);
+                if (!b1.SequenceEqual(b2))
+                {
+                    isEqual = false;
+                    break;
+                }
+            }
+            return isEqual;
         }
     }
 }
