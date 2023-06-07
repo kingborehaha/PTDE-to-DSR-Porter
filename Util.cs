@@ -78,7 +78,7 @@ namespace DSPorterUtil
         public static ConcurrentBag<PARAMDEF> LoadParamDefXmls(string gameType)
         {
             ConcurrentBag<PARAMDEF> paramdefs_ptde = new();
-            foreach (string path in Directory.GetFiles($"Paramdex\\{gameType}\\Defs", "*.xml", SearchOption.AllDirectories))
+            foreach (string path in Directory.GetFiles($"{Directory.GetCurrentDirectory()}\\Resources\\Paramdex\\{gameType}\\Defs", "*.xml", SearchOption.AllDirectories))
             {
                 var paramdef = PARAMDEF.XmlDeserialize(path);
                 paramdefs_ptde.Add(paramdef);

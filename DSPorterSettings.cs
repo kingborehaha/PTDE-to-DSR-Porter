@@ -8,12 +8,12 @@ namespace DSRPorter
 {
     public static class DSPorterSettings
     {
-        public static bool Setting_CompileLua;
+        public static bool CompileLua = true;
 
 #if DEBUG
-        public const bool IS_SOTE = true;
+        public static bool IS_SOTE = true;
 #else
-        public const bool IS_SOTE = false;
+        public static bool IS_SOTE = false;
 #endif
     }
 }

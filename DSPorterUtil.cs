@@ -251,7 +251,7 @@ namespace DSRPorter
                 }
                 catch
                 {
-                    throw new Exception($"\"Resources\\MSB Exceptions.txt\" has invalid formatting and cannot be used.");
+                    throw new Exception($"Line {Array.IndexOf(file, line) + 1} of \"Resources\\MSB Exceptions.txt\" has invalid formatting and cannot be used.");
                 }
                 output.TryAdd(map, new List<string>());
                 output[map].Add(name);
@@ -270,22 +270,10 @@ namespace DSRPorter
             if (fInfo1.Length != fInfo2.Length)
                 return false;
 
-            byte[] b1 = new byte[1024];
-            byte[] b2 = new byte[1024];
-            var FS1 = fInfo1.OpenRead();
-            var FS2 = fInfo2.OpenRead();
-            bool isEqual = true;
+            byte[] b1 = File.ReadAllBytes(fInfo1.FullName);
+            byte[] b2 = File.ReadAllBytes(fInfo2.FullName);
 
-            while (FS1.Read(b1, 0, 1024) > 0)
-            {
-                FS2.Read(b2, 0, 1024);
-                if (!b1.SequenceEqual(b2))
-                {
-                    isEqual = false;
-                    break;
-                }
-            }
-            return isEqual;
+            return b1.SequenceEqual(b2);
         }
     }
 }

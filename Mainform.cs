@@ -21,25 +21,27 @@ namespace DSRPorter
             CheckEnableActivateButton();
             this.Text = ProgramTitle;
 
-
-
-            DSPorterSettings.Setting_CompileLua = setting_CompileLua.Checked;
-
-
+            // Set settings values
+            Setting_CompileLua.Checked = DSPorterSettings.CompileLua;
+            Setting_IsSOTE.Checked = DSPorterSettings.IS_SOTE;
 
 
             if (DSPorterSettings.IS_SOTE)
             {
-                MessageBox.Show("Program is currently in SOTE mode. Change \"IS_SOTE\" bool in code or build RELEASE instead of DEBUG.", "Notice", MessageBoxButtons.OK);
+                MessageBox.Show("Program is currently in SOTE mode. Change \"IS_SOTE\" bool in code or build RELEASE instead of DEBUG.", "SOTE MODE ACTIVE", MessageBoxButtons.OK);
             }
         }
 
         private void CheckEnableActivateButton()
         {
-            if (FolderBrowser_PTDE_Mod.SelectedPath != "" && FolderBrowser_PTDE_Vanilla.SelectedPath != "" && FolderBrowser_DSR.SelectedPath != "")
-                Button_Activate.Enabled = true;
-            else
-                Button_Activate.Enabled = false;
+            Button_Activate.Enabled = false;
+            if (!PortingInProcess)
+            {
+                if (FolderBrowser_PTDE_Mod.SelectedPath != "" && FolderBrowser_PTDE_Vanilla.SelectedPath != "" && FolderBrowser_DSR.SelectedPath != "")
+                {
+                    Button_Activate.Enabled = true;
+                }
+            }
             return;
         }
 
@@ -48,19 +50,22 @@ namespace DSRPorter
             Task.Run(() => RunProgram());
         }
 
+        public bool PortingInProcess = false;
         private void RunProgram()
         {
             ProgramProgressBar.Invoke(() => ProgramProgressBar.Value = 0);
+            PortingInProcess = true;
             Button_Activate.Invoke(() => Button_Activate.Enabled = false);
 
             DSPorter porter = new(ProgramProgressBar);
             porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
 
             Button_Activate.Invoke(() => Button_Activate.Enabled = true);
+            PortingInProcess = false;
 
             System.Media.SystemSounds.Exclamation.Play();
 
-            if (porter.porterException == null)
+            if (porter.PorterException == null)
             {
                 var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
                 if (result == DialogResult.Yes)
@@ -69,8 +74,8 @@ namespace DSRPorter
             else
             {
                 var result = MessageBox.Show($"Porting process ran into an issue.\n\n" +
-                    $"{porter.porterException.SourceException.Message}\n" +
-                    $"{porter.porterException.SourceException.StackTrace}", "Error", MessageBoxButtons.OK);
+                    $"{porter.PorterException.SourceException.Message}\n" +
+                    $"{porter.PorterException.SourceException.StackTrace}", "Error", MessageBoxButtons.OK);
             }
 
             GC.Collect();
@@ -83,18 +88,33 @@ namespace DSRPorter
         private void Button_Browse_PTDE_Mod_Click(object sender, EventArgs e)
         {
             FolderBrowser_PTDE_Mod.ShowDialog();
+            string path = FolderBrowser_PTDE_Mod.SelectedPath;
+            if (path != "")
+            {
+                Text_FileLoaded_PTDE_Mod.Text = $"{path}";
+            }
             CheckEnableActivateButton();
         }
 
         private void Button_Browse_DSR_Click(object sender, EventArgs e)
         {
             FolderBrowser_DSR.ShowDialog();
+            string path = FolderBrowser_DSR.SelectedPath;
+            if (path != "")
+            {
+                Text_FileLoaded_DSR_Mod.Text = $"{path}";
+            }
             CheckEnableActivateButton();
         }
 
         private void Button_Browse_PTDE_Vanilla_Click(object sender, EventArgs e)
         {
             FolderBrowser_PTDE_Vanilla.ShowDialog();
+            string path = FolderBrowser_PTDE_Vanilla.SelectedPath;
+            if (path != "")
+            {
+                Text_FileLoaded_PTDE_Vanilla.Text = $"{path}";
+            }
             CheckEnableActivateButton();
         }
 
@@ -109,9 +129,19 @@ namespace DSRPorter
             CheckEnableActivateButton();
         }
 
-        private void setting_CompileLua_CheckedChanged(object sender, EventArgs e)
+        private void Button_Info_Click(object sender, EventArgs e)
         {
-            DSPorterSettings.Setting_CompileLua = setting_CompileLua.Checked;
+            MessageBox.Show("", "Info", MessageBoxButtons.OK);
+        }
+
+        private void Setting_CompileLua_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.CompileLua = Setting_CompileLua.Checked;
+        }
+
+        private void Setting_IsSOTE_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.IS_SOTE = Setting_IsSOTE.Checked;
         }
     }
 }

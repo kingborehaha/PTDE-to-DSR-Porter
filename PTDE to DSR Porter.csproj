@@ -41,12 +41,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Paramdex\**">
+    <None Update="Resources\Paramdex\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Update="lua\**">
+    <None Update="Resources\lua\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

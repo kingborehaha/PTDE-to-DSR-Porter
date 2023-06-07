@@ -55,15 +55,15 @@ namespace DSRPorter
         public string DataPath_DSR = "";
 
         public TAE.Template TaeTemplate = TAE.Template.ReadXMLFile(@$"{Directory.GetCurrentDirectory()}\Resources\TAE.Template.DS1.xml");
-        public string DataPath_Output = Directory.GetCurrentDirectory() + "\\output";
-        public string LuaCompilationPath = $@"{Directory.GetCurrentDirectory()}\lua";
+        public string DataPath_Output = $@"{Directory.GetCurrentDirectory()}\output";
+        public string LuaCompilationPath = $@"{Directory.GetCurrentDirectory()}\Resources\lua";
         public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
         private ConcurrentBag<PARAMDEF> _paramdefs_ptde = new();
         private ConcurrentBag<PARAMDEF> _paramdefs_dsr = new();
         private List<ScaledObject> _scaledObjects = new();
         private HashSet<string> _objsToPort = new();
-        public System.Runtime.ExceptionServices.ExceptionDispatchInfo? porterException = null;
+        public System.Runtime.ExceptionServices.ExceptionDispatchInfo? PorterException = null;
 
         public ConcurrentBag<string> OutputLog = new();
 
@@ -73,12 +73,12 @@ namespace DSRPorter
         private readonly List<long> _ffxTpffWhitelist = new()
         {
             // TPF for FFX
-            //91101, // Man-serpent mage lingering spit
-            //20031, // Man-serpent mage lingering spit
+            // Not implemented.
         };
 
         private List<long> _ffxWhitelist = new()
         {
+            // These are all SOTE effects can be replaced as desired.
 
             // For baby skeleton poison AOE (which uses toxic fog effect)
             20117, // poison fog initial
@@ -140,11 +140,11 @@ namespace DSRPorter
         private List<long> _ffxBlacklist = new()
         {
             // Crystal effects
-            15291,
-            15293,
-            20269,
-            12714,
-            12711,
+            15291, // seath
+            15293, // seath
+            20269, // white dragon breath
+            12711, // golem
+            12714, // crystal gold golem
             //
 
             // Fog gates
@@ -160,6 +160,7 @@ namespace DSRPorter
         public bool _descaleMSBObjects = true;
 
         private readonly ProgressBar _progressBar;
+        private readonly TextBox _consoleText;
 
         public DSPorter(ProgressBar progressBar)
         {
@@ -474,7 +475,12 @@ namespace DSRPorter
                                 // File was unmodified
                                 if (is_ffx)
                                 {
-                                    if (!_ffxWhitelist.Contains(fileID))
+                                    if (!DSPorterSettings.IS_SOTE)
+                                    {
+                                        // Skip this FFX.
+                                        continue;
+                                    }
+                                    else if (!_ffxWhitelist.Contains(fileID))
                                     {
                                         // Not present in whitelist, skip this FFX.
                                         continue;
@@ -490,10 +496,13 @@ namespace DSRPorter
                     }
                     if (is_ffx)
                     {
-                        if (_ffxBlacklist.Contains(fileID))
+                        if (DSPorterSettings.IS_SOTE)
                         {
-                            // Present in blacklist, skip this FFX.
-                            continue;
+                            if (_ffxBlacklist.Contains(fileID))
+                            {
+                                // Present in blacklist, skip this FFX.
+                                continue;
+                            }
                         }
                     }
 
@@ -1333,11 +1342,8 @@ namespace DSRPorter
             Debug.WriteLine("Finished: Generic BNDs");
             OutputLog.Add($@"Finished: {directory}\{searchPattern}");
         }
-        private byte[] CompileLuaBytes(byte[] bytes)
+        private byte[] CompileLua(byte[] bytes)
         {
-            //Directory.CreateDirectory($@"{LuaCompilationPath}\in");
-            //Directory.CreateDirectory($@"{LuaCompilationPath}\out");
-
             // Save bytes to working dir
             string inputPath = $@"{LuaCompilationPath}\lua.in";
             File.WriteAllBytes(inputPath, bytes);
@@ -1359,13 +1365,6 @@ namespace DSRPorter
                 exeProcess.WaitForExit();
             }
 
-            /*
-            // 90% sure I don't want this, as bigger file sizer != memory used (and plain text will definitely occupy more than byte code)
-            if (File.ReadAllBytes($@"{Directory.GetCurrentDirectory()}\lua.out").Length > bytes.Length)
-            {
-                return bytes;
-            }
-            */
             return File.ReadAllBytes($@"{LuaCompilationPath}\lua.out");
         }
 
@@ -1394,7 +1393,6 @@ namespace DSRPorter
                         if (luaHeader.SequenceEqual(new byte[4] { 0x1B, 0x4C, 0x75, 0x61 }))
                         {
                             // This is compiled lua. 32 bit compiled lua cannot be used in DSR, so use DSR instead.
-
                             BinderFile? file_DSR = files_DSR_list.Find(e => e.Name == file_PTDE_Target.Name);
                             if (file_DSR == null)
                             {
@@ -1407,13 +1405,12 @@ namespace DSRPorter
                         }
                         else
                         {
-                            // This .lua file is not compiled. Can be used in DSR safely.
-
-                            if (DSPorterSettings.Setting_CompileLua)
+                            // This is decompiled lua. Can be used in DSR safely.
+                            if (DSPorterSettings.CompileLua)
                             {
                                 try
                                 {
-                                    file_PTDE_Target.Bytes = CompileLuaBytes(file_PTDE_Target.Bytes);
+                                    file_PTDE_Target.Bytes = CompileLua(file_PTDE_Target.Bytes);
                                 }
                                 catch(Exception e)
                                 {
@@ -1606,26 +1603,7 @@ namespace DSRPorter
             Debug.WriteLine("Finished: SOTE OBJBND VANILLA ANIM TRANSFER");
             OutputLog.Add($@"Finished: obj\*.objbnd");
         }
-        /*
-        public void CrashTEstSelfContainALLTEXTURES()
-        {
-            DataPath_Output = @"Y:\SteamLibrary\steamapps\common\DARK SOULS REMASTERED";
-            DataPath_DSR = @"Y:\SteamLibrary\steamapps\common\DARK SOULS REMASTERED";
-            MessageBox.Show("Trying to self-contain all textures directly in DSR folder! make sure you actually want to do this, nerd!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            TexturePorter texPorter = new(this);
-            foreach (var obj in Directory.GetFiles("Y:\\SteamLibrary\\steamapps\\common\\DARK SOULS REMASTERED\\obj", "*.objbnd.dcx"))
-            {
-                File.Delete(obj);
-                File.Move($"{obj}.containedbak", obj);
-                //File.Copy(obj, $"{obj}.containedbak", false);
-                
-                //texPorter.SelfContainTextures_Objbnd(Path.GetFileName(obj).Replace(".objbnd.dcx", ""));
-                //OutputLog.Add($@"Added self-contained textures: {obj}");
-                
-            }
-            throw new Exception("done");
-        }
-        */
+
         public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
         {
             try
@@ -1658,40 +1636,31 @@ namespace DSRPorter
                 OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                 List<Task> taskList = new();
 
-                if (false)
+                taskList.AddRange(new List<Task>()
                 {
-                    taskList.AddRange(new List<Task>()
-                    {
-                        Task.Run(() => DSRPorter_MSB()),
-                        Task.Run(() => DSRPorter_CHRBND()),
-                        Task.Run(() => DSRPorter_OBJBND()),
-                        Task.Run(() => DSRPorter_LUABND()),
-                        Task.Run(() => DSRPorter_ANIBND()),
-                        Task.Run(() => DSRPorter_ESD()),
-                        Task.Run(() => DSRPorter_MSGBND()),
-                        Task.Run(() => DSRPorter_EMEVD()),
-                        Task.Run(() => DSRPorter_FFX()),
+                    Task.Run(() => DSRPorter_MSB()),
+                    Task.Run(() => DSRPorter_CHRBND()),
+                    Task.Run(() => DSRPorter_OBJBND()),
+                    Task.Run(() => DSRPorter_LUABND()),
+                    Task.Run(() => DSRPorter_ANIBND()),
+                    Task.Run(() => DSRPorter_ESD()),
+                    Task.Run(() => DSRPorter_MSGBND()),
+                    Task.Run(() => DSRPorter_EMEVD()),
+                    Task.Run(() => DSRPorter_FFX()),
 
-                        Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
-                        Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)),
+                    Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
+                    Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)),
 
-                        Task.Run(() => DSRPorter_ObjTextures()),
+                    Task.Run(() => DSRPorter_ObjTextures()),
 
-                        //
-                        Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
-                        Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
-                        Task.Run(() => DSRPorter_GameParam()),
-                        Task.Run(() => DSRPorter_DrawParam()),
-                        //
-                    });
-                }
-                else
-                {
-                    taskList.AddRange(new List<Task>()
-                    {
-                        Task.Run(() => DSRPorter_LUABND()),
-                    });
-                }
+                    //
+                    Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
+                    Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
+                    Task.Run(() => DSRPorter_GameParam()),
+                    Task.Run(() => DSRPorter_DrawParam()),
+                    //
+                });
+
                 var taskCount = taskList.Count;
                 while (taskList.Any())
                 {
@@ -1739,7 +1708,7 @@ namespace DSRPorter
             catch (Exception e)
             {
                 // Capture exception to be reported later.
-                porterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
+                PorterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
             }
 
             _progressBar.Invoke(() => _progressBar.Value = _progressBar.Maximum);
