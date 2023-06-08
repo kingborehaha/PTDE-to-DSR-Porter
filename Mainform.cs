@@ -23,10 +23,10 @@ namespace DSRPorter
 
             // Set settings values
             Setting_CompileLua.Checked = DSPorterSettings.CompileLua;
-            Setting_IsSOTE.Checked = DSPorterSettings.IS_SOTE;
+            Setting_IsSOTE.Checked = DSPorterSettings.Is_SOTE;
 
 
-            if (DSPorterSettings.IS_SOTE)
+            if (DSPorterSettings.Is_SOTE)
             {
                 MessageBox.Show("Program is currently in SOTE mode. Change \"IS_SOTE\" bool in code or build RELEASE instead of DEBUG.", "SOTE MODE ACTIVE", MessageBoxButtons.OK);
             }
@@ -58,7 +58,10 @@ namespace DSRPorter
             Button_Activate.Invoke(() => Button_Activate.Enabled = false);
 
             DSPorter porter = new(ProgramProgressBar);
-            porter.Run(FolderBrowser_PTDE_Mod.SelectedPath, FolderBrowser_DSR.SelectedPath, FolderBrowser_PTDE_Vanilla.SelectedPath);
+            porter.DataPath_PTDE_Mod = FolderBrowser_PTDE_Mod.SelectedPath;
+            porter.DataPath_PTDE_Vanilla = FolderBrowser_PTDE_Vanilla.SelectedPath;
+            porter.DataPath_DSR = FolderBrowser_DSR.SelectedPath;
+            porter.Run();
 
             Button_Activate.Invoke(() => Button_Activate.Enabled = true);
             PortingInProcess = false;
@@ -141,7 +144,7 @@ namespace DSRPorter
 
         private void Setting_IsSOTE_CheckedChanged(object sender, EventArgs e)
         {
-            DSPorterSettings.IS_SOTE = Setting_IsSOTE.Checked;
+            DSPorterSettings.Is_SOTE = Setting_IsSOTE.Checked;
         }
     }
 }

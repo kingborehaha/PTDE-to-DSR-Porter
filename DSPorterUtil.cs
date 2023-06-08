@@ -69,7 +69,7 @@ namespace DSRPorter
                     dynamic vanillaVal = ptdeVanillaCell.Value;
                     dynamic moddedVal = ptdeModdedCell.Value;
 
-                    if (DSPorterSettings.IS_SOTE && dsrCell.Def.InternalName.ToLower().Contains("dwindle"))
+                    if (DSPorterSettings.Is_SOTE && dsrCell.Def.InternalName.ToLower().Contains("dwindle"))
                     {
                         dsrCell.Value = moddedVal;
                         continue;
@@ -207,52 +207,14 @@ namespace DSRPorter
             return id;
         }
 
-        /*
-        private List<Type> _textureTypes = new()
+        public Dictionary<string, List<string>> LoadTextResource_MsbScaledObjs()
         {
-            typeof(FXR1.FXActionData.FXActionData27),
-            typeof(FXR1.FXActionData.FXActionData40),
-            typeof(FXR1.FXActionData.FXActionData43),
-            typeof(FXR1.FXActionData.FXActionData59),
-            typeof(FXR1.FXActionData.FXActionData61),
-        };
-        public HashSet<long> GetFfxTextureIDs(FXR1 ffx)
-        {
-            HashSet<long> list = new();
-
-            foreach (var typ in _textureTypes)
-            {
-                foreach (var prop in ffx.GetType().GetProperties())
-                {
-                    if (prop.PropertyType == typ)
-                    {
-                        Debugger.Break();
-                    }
-                }
-            }
-            return list;
-        }
-        */
-        public Dictionary<string, List<string>> LoadResource_MSBExceptions()
-        {
-            string[] file = File.ReadAllLines($@"{Directory.GetCurrentDirectory()}\Resources\MSB_Scaled_Obj_Exceptions.txt");
+            List<string[]> resources = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\MSB Scaled Object Whitelist.txt", 2);
             Dictionary<string, List<string>> output = new();
-            foreach (var line in file)
+            foreach (var resource in resources)
             {
-                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("//"))
-                    continue;
-                string map = "";
-                string name = "";
-                try
-                {
-                    var split = line.Split("||");
-                    map = split[0];
-                    name = split[1];
-                }
-                catch
-                {
-                    throw new Exception($"Line {Array.IndexOf(file, line) + 1} of \"Resources\\MSB Exceptions.txt\" has invalid formatting and cannot be used.");
-                }
+                var map = resource[0];
+                var name = resource[1];
                 output.TryAdd(map, new List<string>());
                 output[map].Add(name);
             }

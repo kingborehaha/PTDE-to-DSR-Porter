@@ -10,10 +10,6 @@ namespace DSRPorter
     {
         public static bool CompileLua = true;
 
-#if DEBUG
-        public static bool IS_SOTE = true;
-#else
-        public static bool IS_SOTE = false;
-#endif
+        public static bool Is_SOTE = false;
     }
 }

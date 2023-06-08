@@ -1,0 +1,49 @@
+// List of FFX to always port to DSR (SOTE only)
+
+// For baby skeleton poison AOE (which uses toxic fog effect)
+20117 // poison fog initial
+20118 // toxic fog initial
+20119 // acid surge initial
+
+// Effects that don't end early enough in DSR
+22723 // tiny fireball (used for a billion things including chaos parasite r2)
+20012 // miasmic fog cast FFX
+
+// Effects that end too early in DSR
+12701 // Man-serpent mage lingering spit
+
+//// Visual preference
+            
+// Bed of chaos
+15411
+15412
+15413
+15414
+15415
+15416
+
+// Cragspider
+13401 // fire whip
+
+// Bonfires
+90000 // bonfire
+90001 // bonfire
+90002 // bonfire
+90003 // bonfire
+90004 // bonfire
+90005 // bonfire
+90006 // bonfire
+90007 // bonfire
+90008 // bonfire
+90009 // bonfire
+90010 // bonfire
+90011 // bonfire
+90012 // bonfire
+90013 // bonfire
+90014 // bonfire
+90015 // bonfire
+90016 // bonfire
+90017 // bonfire
+90018 // bonfire
+90019 // bonfire
+90020 // bonfire

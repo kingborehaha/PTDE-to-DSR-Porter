@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Numerics;
 using SoulsFormats;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace DSPorterUtil
 {
@@ -240,6 +241,34 @@ namespace DSPorterUtil
             return prop.GetValue(FindPropertyObject(prop, obj));
         }
 
+        /// <summary>
+        /// Loads a text resource.
+        /// </summary>
+        public static List<string[]> LoadTextResource(string path, int elementNum)
+        {
+            string[] file = File.ReadAllLines(path);
+            List<string[]> output = new();
+            for (var i = 0; i < file.Length; i++)
+            {
+                Debugger.Break();
+                var line = file[i];
+                if (line.Contains("//"))
+                {
+                    var index = line.IndexOf("//");
+                    line = line.Remove(index);
+                }
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+                
+                var split = line.Split("||");
+                if (split.Length != elementNum)
+                {
+                    throw new Exception($"Text resource load error: {path}.\nLine {i + 1} has invalid formatting.");
+                }
+                output.Add(split);
+            }
+            return output;
+        }
     }
 
 }

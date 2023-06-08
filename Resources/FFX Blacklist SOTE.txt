@@ -1,0 +1,17 @@
+// List of FFX to never port to DSR
+
+// Crystal effects
+15291 // seath
+15293 // seath
+20269 // white dragon breath
+12711 // golem
+12714 // crystal gold golem
+//
+
+// Fog gates
+81210
+81412
+81413
+81700
+81800
+//

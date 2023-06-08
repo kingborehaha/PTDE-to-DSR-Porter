@@ -63,111 +63,64 @@ namespace DSRPorter
         private ConcurrentBag<PARAMDEF> _paramdefs_dsr = new();
         private List<ScaledObject> _scaledObjects = new();
         private HashSet<string> _objsToPort = new();
+        private readonly ProgressBar _progressBar;
         public System.Runtime.ExceptionServices.ExceptionDispatchInfo? PorterException = null;
 
         public ConcurrentBag<string> OutputLog = new();
 
         public const bool EnableScaledObjectAdjustments = false;
-        public bool UseDsrTextures = true;
+        public const bool UseDsrTextures = true;
+        public const bool UseDSRToneMapBankValues = true;
+        public bool DescaleMSBObjects = true;
 
-        private readonly List<long> _ffxTpffWhitelist = new()
+        public DSPorter(ProgressBar progressBar)
+        {
+            _progressBar = progressBar;
+            if (DSPorterSettings.Is_SOTE)
+            {
+                FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist SOTE.txt");
+                FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist SOTE.txt");
+            }
+            else
+            {
+                FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist.txt");
+                FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist.txt");
+            }
+            MsbScaledObj_Whitelist = LoadTextResource_MsbScaledObjs();
+        }
+
+        public readonly Dictionary<string, List<string>> MsbScaledObj_Whitelist;
+
+        private readonly List<long> _ffxTpfWhitelist = new()
         {
             // TPF for FFX
             // Not implemented.
         };
 
-        private List<long> _ffxWhitelist = new()
+        public readonly List<long> FFX_Whitelist = new();
+        public readonly List<long> FFX_Blacklist = new();
+        private List<long> LoadTextResource_FFX(string pathName)
         {
-            // These are all SOTE effects can be replaced as desired.
-
-            // For baby skeleton poison AOE (which uses toxic fog effect)
-            20117, // poison fog initial
-            20118, // toxic fog initial
-            20119, // acid surge initial
-            /*
-            // Then for (color) consistency with initial ffxs
-            // Nah, they look quite a bit worse. color consistency isn't worth it.
-            20217, // poison fog lingering
-            20218, // toxic fog lingering
-            20219, // acid surge lingering
-            */
-
-            // Effects that don't end early enough in DSR
-            22723, // tiny fireball (used for a billion things, including chaos parasite r2)
-            20012, // miasmic fog cast FFX
-
-            // Effects that end too early in DSR
-            12701, // Man-serpent mage lingering spit
-
-            // Visual preference
-            
-            // Bed of chaos
-            15411,
-            15412,
-            15413,
-            15414,
-            15415,
-            15416,
-
-            // Cragspider
-            13401, // fire whip
-
-            // Bonfires
-            90000, // bonfire
-            90001, // bonfire
-            90002, // bonfire
-            90003, // bonfire
-            90004, // bonfire
-            90005, // bonfire
-            90006, // bonfire
-            90007, // bonfire
-            90008, // bonfire
-            90009, // bonfire
-            90010, // bonfire
-            90011, // bonfire
-            90012, // bonfire
-            90013, // bonfire
-            90014, // bonfire
-            90015, // bonfire
-            90016, // bonfire
-            90017, // bonfire
-            90018, // bonfire
-            90019, // bonfire
-            90020, // bonfire
-            
-
-        };
-        private List<long> _ffxBlacklist = new()
-        {
-            // Crystal effects
-            15291, // seath
-            15293, // seath
-            20269, // white dragon breath
-            12711, // golem
-            12714, // crystal gold golem
-            //
-
-            // Fog gates
-            81210,
-            81412,
-            81413,
-            81700,
-            81800,
-            //
-        };
-
-        private readonly bool _useDSRToneMapBankValues = true;
-        public bool _descaleMSBObjects = true;
-
-        private readonly ProgressBar _progressBar;
-        private readonly TextBox _consoleText;
-
-        public DSPorter(ProgressBar progressBar)
-        {
-            _progressBar = progressBar;
+            List<string[]> resList = Util.LoadTextResource($@"{Directory.GetCurrentDirectory}\Resources\{pathName}", 1);
+            List<long> output = new();
+            foreach (var res in resList)
+            {
+                long id;
+                try
+                {
+                    id = long.Parse(res[0]);
+                }
+                catch
+                {
+                    throw new Exception($"Text resource load error: {pathName}.\n{res[0]} is not a valid FFX ID.");
+                }
+                output.Add(id);
+            }
+            return output;
         }
 
-        public readonly List<ScaledObject> SOTEScaledObjectList = new()
+
+        public readonly List<ScaledObject> SOTE_ScaledObjectList = new()
         {
             //new ScaledObject("o1413", "o1422", new Vector3( 1.0f,    1.5f,   1.0f)), // taurus arena blockers. removed in favor of enemy-only collision
             //new ScaledObject("o1413", "o1423", new Vector3( 1.0f,    2.0f,   1.0f)), // taurus arena blockers. removed in favor of enemy-only collision
@@ -212,20 +165,18 @@ namespace DSRPorter
             if (paths.Length == 0)
                 return;
 
-            Dictionary<string, List<string>> scalingExceptionDict = LoadResource_MSBExceptions(); // MSB_Scaled_Obj_Exceptions.txt
-
             foreach (var path in paths)
             {
                 string msbName = Path.GetFileNameWithoutExtension(path);
                 var msb = MSB1.Read(path);
                 MSB1 msb_vanilla = MSB1.Read(path.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla));
-                scalingExceptionDict.TryGetValue(msbName, out List<string>? scalingExceptionList);
+                MsbScaledObj_Whitelist.TryGetValue(msbName, out List<string>? scalingExceptionList);
 
                 foreach (var model in msb.Models.Objects)
                 {
                     if (msb_vanilla.Models.Objects.Find(e => e.Name == model.Name) == null)
                     {
-                        if (DSPorterSettings.IS_SOTE)
+                        if (DSPorterSettings.Is_SOTE)
                         {
                             if (model.Name.Contains("4203"))
                             {
@@ -241,9 +192,9 @@ namespace DSRPorter
                     if (scalingExceptionList != null && scalingExceptionList.Contains(p.Name))
                     { 
                     }
-                    else if (_descaleMSBObjects && Util.HasModifiedScaling(p.Scale))
+                    else if (DescaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                     {
-                        if (!DSPorterSettings.IS_SOTE)
+                        if (!DSPorterSettings.Is_SOTE)
                         {
                             OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
                             p.Scale = Vector3.One;
@@ -271,7 +222,7 @@ namespace DSRPorter
                                 }
                             }
 
-                            foreach (var so in SOTEScaledObjectList)
+                            foreach (var so in SOTE_ScaledObjectList)
                             {
                                 // SOTE: go through pre-scaled object list to find the corresponding pre-scaled object.
                                 if (so.Matches(p.ModelName, p.Scale))
@@ -377,7 +328,7 @@ namespace DSRPorter
 
                 foreach (var p in msb.Parts.MapPieces)
                 {
-                    if (DSPorterSettings.IS_SOTE)
+                    if (DSPorterSettings.Is_SOTE)
                     {
                         if (msbName == "m14_01_00_00")
                         {
@@ -391,7 +342,7 @@ namespace DSRPorter
                     }
                 }
 
-                if (DSPorterSettings.IS_SOTE)
+                if (DSPorterSettings.Is_SOTE)
                 {
                     if (msbName == "m15_00_00_00")
                     {
@@ -463,7 +414,7 @@ namespace DSRPorter
                     {
                         // File exists in vanilla, check if it is allowed to be ported.
 
-                        if (_ffxTpffWhitelist.Contains(GetFileIdFromName(file_PTDE_vanilla.Name)))
+                        if (_ffxTpfWhitelist.Contains(GetFileIdFromName(file_PTDE_vanilla.Name)))
                         {
                             throw new NotSupportedException();
                         }
@@ -475,12 +426,7 @@ namespace DSRPorter
                                 // File was unmodified
                                 if (is_ffx)
                                 {
-                                    if (!DSPorterSettings.IS_SOTE)
-                                    {
-                                        // Skip this FFX.
-                                        continue;
-                                    }
-                                    else if (!_ffxWhitelist.Contains(fileID))
+                                    if (!FFX_Whitelist.Contains(fileID))
                                     {
                                         // Not present in whitelist, skip this FFX.
                                         continue;
@@ -496,13 +442,10 @@ namespace DSRPorter
                     }
                     if (is_ffx)
                     {
-                        if (DSPorterSettings.IS_SOTE)
+                        if (FFX_Blacklist.Contains(fileID))
                         {
-                            if (_ffxBlacklist.Contains(fileID))
-                            {
-                                // Present in blacklist, skip this FFX.
-                                continue;
-                            }
+                            // Present in blacklist, skip this FFX.
+                            continue;
                         }
                     }
 
@@ -555,7 +498,8 @@ namespace DSRPorter
             {
                 if (dsrPath.EndsWith("Patch.ffxbnd.dcx"))
                 {
-                    // It seems like dupe FFX present in common already take precedence over patch so this may not matter too much.
+                    // It seems like dupe FFX present in common already take precedence over patch so I don't believe this is necessary.
+
                     // But if it does turn out to matter: ha ha, idiot. finish this.
                     /*
                     // For patchffxbnd, any present FFXs are expected to be in commonffxbnd instead.
@@ -600,7 +544,7 @@ namespace DSRPorter
                 foreach (var file in bnd_DSR_target.Files)
                 {
                     long fileID = GetFileIdFromName(file.Name);
-                    if (FXR1.Is(file.Bytes) && _ffxWhitelist.Contains(fileID))
+                    if (FXR1.Is(file.Bytes) && FFX_Whitelist.Contains(fileID))
                     {
                         var ptde_file = bnd_PTDE_vanilla.Files.Find(e => GetFileIdFromName(e.Name) == fileID);
 
@@ -616,7 +560,7 @@ namespace DSRPorter
                 if (portThisBND)
                 {
                     Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_DSR, dsrPath, CompressionType);
-                    OutputLog.Add($"FFX: Ported \"{fileName}.ffxbnd.dcx\" because it had whitelisted FFX");
+                    OutputLog.Add($"FFX: Included \"{fileName}.ffxbnd.dcx\" because it had whitelisted FFX");
                 }
             }
 
@@ -755,7 +699,7 @@ namespace DSRPorter
             if (paths.Length == 0)
                 return;
 
-            while (!_paramdefs_ptde.Any() || !_paramdefs_dsr.Any()) //|| !_MSBFinished
+            while (!_paramdefs_ptde.Any() || !_paramdefs_dsr.Any())
             {
                 Thread.Sleep(1000);
             }
@@ -792,7 +736,7 @@ namespace DSRPorter
                         {
                             // DSR defs can't handle this, but it's all default values in PTDE so I doubt it matters
                         }
-                        else if (DSPorterSettings.IS_SOTE
+                        else if (DSPorterSettings.Is_SOTE
                             && (item.Key.StartsWith("s18_1") || item.Key.StartsWith("m18_1")))
                         {
                             // Those drawparams I added to SOTE but never used
@@ -825,7 +769,7 @@ namespace DSRPorter
 
                     if (param_old.ParamType == "TONE_MAP_BANK")
                     {
-                        if (_useDSRToneMapBankValues)
+                        if (UseDSRToneMapBankValues)
                         {
                             // Don't transfer row data for this param
                             return;
@@ -847,10 +791,10 @@ namespace DSRPorter
                                 param_new_target.Rows.Add(newObjRow);
                             }
                         }
-                        else if (DSPorterSettings.IS_SOTE)
+                        else if (DSPorterSettings.Is_SOTE)
                         {
                             orderRows = true;
-                            foreach (var scaledObj in SOTEScaledObjectList)
+                            foreach (var scaledObj in SOTE_ScaledObjectList)
                             {
                                 var OGRow = param_old[scaledObj.OGModelID];
                                 if (OGRow == null)
@@ -880,10 +824,10 @@ namespace DSRPorter
                                 param_new_target.Rows.Add(newObjRow);
                             }
                         }
-                        else if (DSPorterSettings.IS_SOTE)
+                        else if (DSPorterSettings.Is_SOTE)
                         {
                             orderRows = true;
-                            foreach (var scaledObj in SOTEScaledObjectList)
+                            foreach (var scaledObj in SOTE_ScaledObjectList)
                             {
                                 var OGRow = param_old[scaledObj.OGModelID];
                                 if (OGRow == null)
@@ -924,7 +868,7 @@ namespace DSRPorter
                                 continue;
                             }
 
-                            if (DSPorterSettings.IS_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
+                            if (DSPorterSettings.Is_SOTE && param_old.ParamType == "POINT_LIGHT_BANK")
                             {
                                 if (item.Key.StartsWith("m13"))
                                 {
@@ -940,7 +884,7 @@ namespace DSRPorter
                                     }
                                 }
                             }
-                            else if (DSPorterSettings.IS_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
+                            else if (DSPorterSettings.Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
                             {
                                 OffsetDrawParamRow(row_ptde_modded, row_new, row_vanilla);
                                 if (item.Key.StartsWith("m14"))
@@ -960,7 +904,7 @@ namespace DSRPorter
                                     }
                                 }
                             }
-                            else if (DSPorterSettings.IS_SOTE && param_old.ParamType == "LIGHT_BANK")
+                            else if (DSPorterSettings.Is_SOTE && param_old.ParamType == "LIGHT_BANK")
                             {
                                 // EXPERIMENTAL: use least shiny value
                                 // Seemingly may want this as an option for non-sote (perhaps only in cases of modified params)!!
@@ -1019,7 +963,7 @@ namespace DSRPorter
                         }
                     }
 
-                    if (DSPorterSettings.IS_SOTE && param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
+                    if (DSPorterSettings.Is_SOTE && param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
                     {
                         foreach (var row in param_new_target.Rows)
                         {
@@ -1106,7 +1050,7 @@ namespace DSRPorter
             TAE tae = null!;
             bool write = false;
 
-            if (DSPorterSettings.IS_SOTE &&
+            if (DSPorterSettings.Is_SOTE &&
                 taeBinder.Name.ToLower().Contains("c0000") &&
                 taeBinder.Name.ToLower().Contains("a00.tae"))
             {
@@ -1152,7 +1096,7 @@ namespace DSRPorter
                     file_old.Name = file_old.Name.Replace("win32", "x64");
                     if (bnd_new.Files.Find(e => e.Name == file_old.Name) == null)
                     {
-                        if (DSPorterSettings.IS_SOTE)
+                        if (DSPorterSettings.Is_SOTE)
                         {
                             if (file_old.Name == @"N:\FRPG\data\Model\chr\c5250\hkxx64\a01_3029.hkx")
                             {
@@ -1190,7 +1134,7 @@ namespace DSRPorter
                     BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
                     if (file_new == null)
                     {
-                        if (DSPorterSettings.IS_SOTE && file_old.Name.Contains("6010"))
+                        if (DSPorterSettings.Is_SOTE && file_old.Name.Contains("6010"))
                         {
                             return;
                         }
@@ -1521,10 +1465,10 @@ namespace DSRPorter
             TexturePorter texPorter = new(this);
             int progressBarTotal = 280;
 
-            if (DSPorterSettings.IS_SOTE)
+            if (DSPorterSettings.Is_SOTE)
             {
                 progressBarTotal /= 2;
-                foreach (var scaledObj in SOTEScaledObjectList)
+                foreach (var scaledObj in SOTE_ScaledObjectList)
                 {
                     texPorter.SelfContainTextures_Objbnd(scaledObj.NewModelName);
                     string outputPath = $@"{DataPath_Output}\obj\{scaledObj.NewModelName}.objbnd.dcx";
@@ -1534,7 +1478,7 @@ namespace DSRPorter
                             continue;
                         File.Copy($@"{DataPath_DSR}\obj\{scaledObj.NewModelName}.objbnd.dcx", outputPath);
                     }
-                    _progressBar.Invoke(() => _progressBar.Increment(1 + progressBarTotal / SOTEScaledObjectList.Count));
+                    _progressBar.Invoke(() => _progressBar.Increment(1 + progressBarTotal / SOTE_ScaledObjectList.Count));
                 }
                 OutputLog.Add($@"Ported all pre-scaled SOTE objects.");
             }
@@ -1548,10 +1492,10 @@ namespace DSRPorter
             }
         }
 
-        public void SOTE_ScaledObjectAnimationBullshittery()
+        public void SOTE_MoveScaledObjectAnims()
         {
             var outputPaths = Directory.GetFiles($@"{DataPath_Output}\obj", "*.objbnd.dcx");
-            foreach (var sObj in SOTEScaledObjectList)
+            foreach (var sObj in SOTE_ScaledObjectList)
             {
                 if (sObj.NewModelID == 4612)
                     continue;
@@ -1604,7 +1548,7 @@ namespace DSRPorter
             OutputLog.Add($@"Finished: obj\*.objbnd");
         }
 
-        public void Run(string ptdePath_Mod, string dsrPath, string ptdePath_Vanilla)
+        public void Run()
         {
             try
             {
@@ -1628,10 +1572,8 @@ namespace DSRPorter
                         }
                     }
                 }
+
                 Directory.CreateDirectory(DataPath_Output);
-                DataPath_PTDE_Vanilla = ptdePath_Vanilla;
-                DataPath_PTDE_Mod = ptdePath_Mod;
-                DataPath_DSR = dsrPath;
 
                 OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                 List<Task> taskList = new();
@@ -1680,7 +1622,7 @@ namespace DSRPorter
                     }
                 }
 
-                if (DSPorterSettings.IS_SOTE)
+                if (DSPorterSettings.Is_SOTE)
                 {
                     string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
                     foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))
@@ -1691,14 +1633,14 @@ namespace DSRPorter
                         File.Copy(path, targetPath, true);
                         OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
                     }
-                    foreach (var obj in SOTEScaledObjectList)
+                    foreach (var obj in SOTE_ScaledObjectList)
                     {
                         if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
                         {
-                            MessageBox.Show($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
+                            OutputLog.Add($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
                         }
                     }
-                    SOTE_ScaledObjectAnimationBullshittery();
+                    SOTE_MoveScaledObjectAnims();
                 }
 
                 LogUnportedFiles();
@@ -1707,7 +1649,7 @@ namespace DSRPorter
             }
             catch (Exception e)
             {
-                // Capture exception to be reported later.
+                // Capture exception to be thrown later.
                 PorterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
             }
 

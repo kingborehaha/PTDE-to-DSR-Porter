@@ -52,7 +52,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Resources\MSB_Scaled_Obj_Exceptions.txt">
+    <None Update="Resources\FFX Blacklist SOTE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\FFX Blacklist.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\FFX Whitelist SOTE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\FFX Whitelist.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\MSB Scaled Object Blacklist.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Resources\TAE.Template.DS1.xml">
