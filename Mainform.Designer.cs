@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             Button_Browse_PTDE_Mod = new Button();
             Button_Activate = new Button();
             Button_Browse_DSR = new Button();
@@ -45,12 +46,17 @@
             ProgramProgressBar = new ProgressBar();
             Button_Info = new Button();
             tabPage2 = new TabPage();
+            Setting_RenderGroupImprovements = new CheckBox();
+            Setting_Misc_DSR_Collision = new CheckBox();
+            Setting_SlimeCeilingFix = new CheckBox();
+            Setting_CompileLua = new CheckBox();
             FolderBrowser_PTDE_Mod = new FolderBrowserDialog();
             FolderBrowser_PTDE_Vanilla = new FolderBrowserDialog();
             FolderBrowser_DSR = new FolderBrowserDialog();
-            Setting_CompileLua = new CheckBox();
+            toolTip1 = new ToolTip(components);
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
+            tabPage2.SuspendLayout();
             SuspendLayout();
             // 
             // Button_Browse_PTDE_Mod
@@ -121,7 +127,6 @@
             // 
             // tabPage1
             // 
-            tabPage1.Controls.Add(Setting_CompileLua);
             tabPage1.Controls.Add(Setting_IsSOTE);
             tabPage1.Controls.Add(Text_FileLoaded_DSR_Mod);
             tabPage1.Controls.Add(Text_FileLoaded_PTDE_Vanilla);
@@ -149,8 +154,7 @@
             Setting_IsSOTE.AutoSize = true;
             Setting_IsSOTE.Checked = true;
             Setting_IsSOTE.CheckState = CheckState.Checked;
-            Setting_IsSOTE.Enabled = false;
-            Setting_IsSOTE.Location = new Point(113, 26);
+            Setting_IsSOTE.Location = new Point(145, 50);
             Setting_IsSOTE.Name = "Setting_IsSOTE";
             Setting_IsSOTE.Size = new Size(86, 19);
             Setting_IsSOTE.TabIndex = 89;
@@ -241,6 +245,10 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(Setting_RenderGroupImprovements);
+            tabPage2.Controls.Add(Setting_Misc_DSR_Collision);
+            tabPage2.Controls.Add(Setting_SlimeCeilingFix);
+            tabPage2.Controls.Add(Setting_CompileLua);
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
@@ -248,6 +256,60 @@
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Options";
             tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // Setting_RenderGroupImprovements
+            // 
+            Setting_RenderGroupImprovements.AutoSize = true;
+            Setting_RenderGroupImprovements.Checked = true;
+            Setting_RenderGroupImprovements.CheckState = CheckState.Checked;
+            Setting_RenderGroupImprovements.Location = new Point(8, 100);
+            Setting_RenderGroupImprovements.Name = "Setting_RenderGroupImprovements";
+            Setting_RenderGroupImprovements.Size = new Size(257, 19);
+            Setting_RenderGroupImprovements.TabIndex = 94;
+            Setting_RenderGroupImprovements.Text = "Include DSR disp/drawgroup improvements";
+            Setting_RenderGroupImprovements.UseVisualStyleBackColor = true;
+            Setting_RenderGroupImprovements.CheckedChanged += Setting_RenderGroupImprovements_CheckedChanged;
+            // 
+            // Setting_Misc_DSR_Collision
+            // 
+            Setting_Misc_DSR_Collision.AutoSize = true;
+            Setting_Misc_DSR_Collision.Checked = true;
+            Setting_Misc_DSR_Collision.CheckState = CheckState.Checked;
+            Setting_Misc_DSR_Collision.Location = new Point(8, 75);
+            Setting_Misc_DSR_Collision.Name = "Setting_Misc_DSR_Collision";
+            Setting_Misc_DSR_Collision.Size = new Size(190, 19);
+            Setting_Misc_DSR_Collision.TabIndex = 93;
+            Setting_Misc_DSR_Collision.Text = "Misc DSR collision adjustments";
+            toolTip1.SetToolTip(Setting_Misc_DSR_Collision, "Replicates misc collision adjustments present in DSR.\r\nOffsets certain collision positions and adjusts 1 nvmgroup.\r\n");
+            Setting_Misc_DSR_Collision.UseVisualStyleBackColor = true;
+            Setting_Misc_DSR_Collision.CheckedChanged += Setting_Misc_DSR_Collision_CheckedChanged;
+            // 
+            // Setting_SlimeCeilingFix
+            // 
+            Setting_SlimeCeilingFix.AutoSize = true;
+            Setting_SlimeCeilingFix.Checked = true;
+            Setting_SlimeCeilingFix.CheckState = CheckState.Checked;
+            Setting_SlimeCeilingFix.Location = new Point(8, 50);
+            Setting_SlimeCeilingFix.Name = "Setting_SlimeCeilingFix";
+            Setting_SlimeCeilingFix.Size = new Size(158, 19);
+            Setting_SlimeCeilingFix.TabIndex = 92;
+            Setting_SlimeCeilingFix.Text = "Fix m10_00 ceiling slimes";
+            toolTip1.SetToolTip(Setting_SlimeCeilingFix, "Adjusts vertical position of certain slimes on ceilings in The Depths to prevent them from clipping out of bounds.\r\nChanges are identical to ones made in DSR.");
+            Setting_SlimeCeilingFix.UseVisualStyleBackColor = true;
+            Setting_SlimeCeilingFix.CheckedChanged += Setting_SlimeCeilingFix_CheckedChanged;
+            // 
+            // Setting_CompileLua
+            // 
+            Setting_CompileLua.AutoSize = true;
+            Setting_CompileLua.Checked = true;
+            Setting_CompileLua.CheckState = CheckState.Checked;
+            Setting_CompileLua.Location = new Point(8, 25);
+            Setting_CompileLua.Name = "Setting_CompileLua";
+            Setting_CompileLua.Size = new Size(90, 19);
+            Setting_CompileLua.TabIndex = 91;
+            Setting_CompileLua.Text = "Compile lua";
+            toolTip1.SetToolTip(Setting_CompileLua, "Compile DSR 64 bit lua to reduce lua memory footprint.");
+            Setting_CompileLua.UseVisualStyleBackColor = true;
             // 
             // FolderBrowser_PTDE_Mod
             // 
@@ -270,18 +332,6 @@
             FolderBrowser_DSR.ShowNewFolderButton = false;
             FolderBrowser_DSR.UseDescriptionForTitle = true;
             // 
-            // Setting_CompileLua
-            // 
-            Setting_CompileLua.AutoSize = true;
-            Setting_CompileLua.Checked = true;
-            Setting_CompileLua.CheckState = CheckState.Checked;
-            Setting_CompileLua.Location = new Point(11, 26);
-            Setting_CompileLua.Name = "Setting_CompileLua";
-            Setting_CompileLua.Size = new Size(96, 19);
-            Setting_CompileLua.TabIndex = 90;
-            Setting_CompileLua.Text = "Compile LUA";
-            Setting_CompileLua.UseVisualStyleBackColor = true;
-            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -296,6 +346,8 @@
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             tabPage1.PerformLayout();
+            tabPage2.ResumeLayout(false);
+            tabPage2.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -320,6 +372,10 @@
         private TextBox Text_FileLoaded_PTDE_Vanilla;
         private TextBox Text_FileLoaded_PTDE_Mod;
         private CheckBox Setting_IsSOTE;
+        private CheckBox Setting_RenderGroupImprovements;
+        private CheckBox Setting_Misc_DSR_Collision;
+        private CheckBox Setting_SlimeCeilingFix;
         private CheckBox Setting_CompileLua;
+        private ToolTip toolTip1;
     }
 }

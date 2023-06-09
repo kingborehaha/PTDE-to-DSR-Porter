@@ -209,7 +209,7 @@ namespace DSRPorter
 
         public Dictionary<string, List<string>> LoadTextResource_MsbScaledObjs()
         {
-            List<string[]> resources = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\MSB Scaled Object Whitelist.txt", 2);
+            List<string[]> resources = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\MSB scaled object whitelist.txt", 2);
             Dictionary<string, List<string>> output = new();
             foreach (var resource in resources)
             {

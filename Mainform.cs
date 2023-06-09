@@ -21,15 +21,16 @@ namespace DSRPorter
             CheckEnableActivateButton();
             this.Text = ProgramTitle;
 
-            // Set settings values
+            // Set UI settings default values
             Setting_CompileLua.Checked = DSPorterSettings.CompileLua;
             Setting_IsSOTE.Checked = DSPorterSettings.Is_SOTE;
+            Setting_SlimeCeilingFix.Checked = DSPorterSettings.SlimeCeilingFix;
+            Setting_Misc_DSR_Collision.Checked = DSPorterSettings.MiscCollisionFixes;
+            Setting_RenderGroupImprovements.Checked = DSPorterSettings.RenderGroupImprovements;
 
-
-            if (DSPorterSettings.Is_SOTE)
-            {
-                MessageBox.Show("Program is currently in SOTE mode. Change \"IS_SOTE\" bool in code or build RELEASE instead of DEBUG.", "SOTE MODE ACTIVE", MessageBoxButtons.OK);
-            }
+#if !DEBUG
+            Setting_isSOTE.Visible = false;
+#endif
         }
 
         private void CheckEnableActivateButton()
@@ -53,9 +54,10 @@ namespace DSRPorter
         public bool PortingInProcess = false;
         private void RunProgram()
         {
-            ProgramProgressBar.Invoke(() => ProgramProgressBar.Value = 0);
-            PortingInProcess = true;
             Button_Activate.Invoke(() => Button_Activate.Enabled = false);
+            PortingInProcess = true;
+
+            ProgramProgressBar.Invoke(() => ProgramProgressBar.Value = 0);
 
             DSPorter porter = new(ProgramProgressBar);
             porter.DataPath_PTDE_Mod = FolderBrowser_PTDE_Mod.SelectedPath;
@@ -80,8 +82,6 @@ namespace DSRPorter
                     $"{porter.PorterException.SourceException.Message}\n" +
                     $"{porter.PorterException.SourceException.StackTrace}", "Error", MessageBoxButtons.OK);
             }
-
-            GC.Collect();
         }
 
         private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)
@@ -145,6 +145,21 @@ namespace DSRPorter
         private void Setting_IsSOTE_CheckedChanged(object sender, EventArgs e)
         {
             DSPorterSettings.Is_SOTE = Setting_IsSOTE.Checked;
+        }
+
+        private void Setting_SlimeCeilingFix_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.SlimeCeilingFix = Setting_SlimeCeilingFix.Checked;
+        }
+
+        private void Setting_Misc_DSR_Collision_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.MiscCollisionFixes = Setting_Misc_DSR_Collision.Checked;
+        }
+
+        private void Setting_RenderGroupImprovements_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.RenderGroupImprovements = RenderGroupImprovements.Checked;
         }
     }
 }

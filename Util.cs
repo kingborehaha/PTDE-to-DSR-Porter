@@ -250,7 +250,6 @@ namespace DSPorterUtil
             List<string[]> output = new();
             for (var i = 0; i < file.Length; i++)
             {
-                Debugger.Break();
                 var line = file[i];
                 if (line.Contains("//"))
                 {

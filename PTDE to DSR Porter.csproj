@@ -41,35 +41,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Resources\Paramdex\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Resources\lua\**">
+    <None Update="Resources\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Resources\FFX Blacklist SOTE.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Resources\lua\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Resources\FFX Blacklist.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\FFX Whitelist SOTE.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\FFX Whitelist.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\MSB Scaled Object Blacklist.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\TAE.Template.DS1.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Output Overwrite\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Remove="Output Overwrite\Dummy overwrite file.txt" />
   </ItemGroup>
 
 </Project>

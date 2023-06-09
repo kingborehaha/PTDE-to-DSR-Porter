@@ -11,37 +11,11 @@ using SoulsFormatsExtensions;
 using SoulsAssetPipeline.Animation;
 
 /*
- * TODO
-
  THINGS THAT NEED TO BE CONVEYED TO USERS
  * Porting DrawParam should be done in conjunction with MSB porting due to DSR's new IDs
  * modified lua must be decompiled since 32 bit lua can't be decompiled (and thus converted)
     * any compiled lua will just be replaced with DSR lua, unless the DSR lua cannot be found in which case program will complain.
  * scaled collision in MSB
-
-//// SOTE stuff
- FFX
- * There are some DSR FFX I don't want to replace, and some FFX I want the PTDE versions of.
-    * Maybe do a diff between vanilla PTDE and SOTE to see which FFX I modified, and include those (sans crystal FFX)
-    * Then do a playthrough with debug on and if I see any FFX I hate (chaos FFX from ceaseless, other chaos boys come to mind) then I add it to a list which program reads and transfers when present.
-    * Use DSR crystal FFX
-    * Use DSR fog gates?
-        * There will be inconsinsistinstinency otherwise, unless i decide to port those exceptions too.
-        * SOTE fog gates also look pretty shitty too so maybe just go with DSR for those and just give up and adjust some DSR ffx for whatever I need
- LUA
- * need to check if game has enough memory for all that. May need to compile it to 64 bit if i get crashes.
- manual TODO
-    breakobjs
-        scaled objects mean that i probably need to regen breakobj
-    drawparam
-        some are jank
-            m14_01
-                pathway from quelaag's domain to demon ruins is very off. did DSR adjust this already?
-                I missed some branches in lost izalith, need to adjust them in PTDE first then I can re-port them.
-    
-// Misc
-Low priority
- * Option to keep DSR drawgroup improvements?
  */
 
 
@@ -54,19 +28,20 @@ namespace DSRPorter
         public string DataPath_PTDE_Vanilla = "";
         public string DataPath_DSR = "";
 
-        public TAE.Template TaeTemplate = TAE.Template.ReadXMLFile(@$"{Directory.GetCurrentDirectory()}\Resources\TAE.Template.DS1.xml");
-        public string DataPath_Output = $@"{Directory.GetCurrentDirectory()}\output";
-        public string LuaCompilationPath = $@"{Directory.GetCurrentDirectory()}\Resources\lua";
+        public readonly TAE.Template TaeTemplate = TAE.Template.ReadXMLFile(@$"{Directory.GetCurrentDirectory()}\Resources\TAE.Template.DS1.xml");
+        public readonly string DataPath_Output = $@"{Directory.GetCurrentDirectory()}\Output";
+        public readonly string LuaCompilationPath = $@"{Directory.GetCurrentDirectory()}\Resources\lua";
+        public readonly string OutputOverwritePath = $@"{Directory.GetCurrentDirectory()}\Output Overwrite";
         public readonly DCX.Type CompressionType = DCX.Type.DCX_DFLT_10000_24_9;
 
-        private ConcurrentBag<PARAMDEF> _paramdefs_ptde = new();
-        private ConcurrentBag<PARAMDEF> _paramdefs_dsr = new();
-        private List<ScaledObject> _scaledObjects = new();
-        private HashSet<string> _objsToPort = new();
+        private ConcurrentBag<PARAMDEF> _paramdefs_ptde;
+        private ConcurrentBag<PARAMDEF> _paramdefs_dsr;
+        private readonly List<ScaledObject> _scaledObjects = new();
+        private readonly HashSet<string> _objsToPort = new();
         private readonly ProgressBar _progressBar;
-        public System.Runtime.ExceptionServices.ExceptionDispatchInfo? PorterException = null;
 
         public ConcurrentBag<string> OutputLog = new();
+        public System.Runtime.ExceptionServices.ExceptionDispatchInfo? PorterException = null;
 
         public const bool EnableScaledObjectAdjustments = false;
         public const bool UseDsrTextures = true;
@@ -76,6 +51,12 @@ namespace DSRPorter
         public DSPorter(ProgressBar progressBar)
         {
             _progressBar = progressBar;
+
+            if (DSPorterSettings.Is_SOTE)
+            {
+                OutputOverwritePath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
+            }
+
             if (DSPorterSettings.Is_SOTE)
             {
                 FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist SOTE.txt");
@@ -86,7 +67,9 @@ namespace DSRPorter
                 FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist.txt");
                 FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist.txt");
             }
+
             MsbScaledObj_Whitelist = LoadTextResource_MsbScaledObjs();
+            MSB_RenderGroupModifiers = LoadTextResource_RenderGroupModifiers();
         }
 
         public readonly Dictionary<string, List<string>> MsbScaledObj_Whitelist;
@@ -97,11 +80,62 @@ namespace DSRPorter
             // Not implemented.
         };
 
+
+        public readonly Dictionary<string, List<RenderGroupModifier>> MSB_RenderGroupModifiers;
+        public class RenderGroupModifier
+        {
+            public GroupTypeEnum GroupType;
+            public int Index;
+            public string PartName;
+            public uint OldValue;
+            public uint NewValue;
+            public enum GroupTypeEnum
+            { 
+                DrawGroup = 0,
+                DispGroup = 1
+            }
+
+            public RenderGroupModifier()
+            { }
+        }
+        private Dictionary<string, List<RenderGroupModifier>> LoadTextResource_RenderGroupModifiers()
+        {
+            string pathName = $@"MSB render group improvements.txt";
+            List<string[]> resList = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\{pathName}", 6);
+            Dictionary<string, List<RenderGroupModifier>> dict = new();
+            foreach (var res in resList)
+            {
+                RenderGroupModifier mod = new();
+                dict.TryAdd(res[0], new List<RenderGroupModifier>());
+
+                try
+                {
+                    mod.GroupType = res[1] switch
+                    {
+                        "draw" => RenderGroupModifier.GroupTypeEnum.DrawGroup,
+                        "disp" => RenderGroupModifier.GroupTypeEnum.DispGroup,
+                        _ => throw new InvalidDataException(),
+                    };
+                    mod.Index = int.Parse(res[2]);
+                    mod.PartName = res[3];
+                    mod.OldValue = uint.Parse(res[4]);
+                    mod.NewValue = uint.Parse(res[5]);
+                    dict[res[0]].Add(mod);
+                }
+                catch
+                {
+                    throw new Exception($"Text resource load error: {pathName}.\n{string.Join("||", res)} has invalid formatting.");
+                }
+            }
+
+            return dict;
+        }
+
         public readonly List<long> FFX_Whitelist = new();
         public readonly List<long> FFX_Blacklist = new();
         private List<long> LoadTextResource_FFX(string pathName)
         {
-            List<string[]> resList = Util.LoadTextResource($@"{Directory.GetCurrentDirectory}\Resources\{pathName}", 1);
+            List<string[]> resList = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\{pathName}", 1);
             List<long> output = new();
             foreach (var res in resList)
             {
@@ -171,6 +205,7 @@ namespace DSRPorter
                 var msb = MSB1.Read(path);
                 MSB1 msb_vanilla = MSB1.Read(path.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla));
                 MsbScaledObj_Whitelist.TryGetValue(msbName, out List<string>? scalingExceptionList);
+                MSB_RenderGroupModifiers.TryGetValue(msbName, out List<RenderGroupModifier>? RenderGroupModifiers);
 
                 foreach (var model in msb.Models.Objects)
                 {
@@ -187,156 +222,173 @@ namespace DSRPorter
                         _objsToPort.Add(model.Name);
                     }
                 }
-                foreach (var p in msb.Parts.Objects)
+
+                foreach (var p in msb.Parts.GetEntries())
                 {
-                    if (scalingExceptionList != null && scalingExceptionList.Contains(p.Name))
-                    { 
-                    }
-                    else if (DescaleMSBObjects && Util.HasModifiedScaling(p.Scale))
+                    if (RenderGroupModifiers != null)
                     {
-                        if (!DSPorterSettings.Is_SOTE)
+                        // dispgroup/drawgroup overrides
+                        if(DSPorterSettings.RenderGroupImprovements)
                         {
-                            OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
-                            p.Scale = Vector3.One;
-                        }
-                        else
-                        {
-                            ScaledObject? scaledObj = null;
-                            if (msbName == "m14_01_00_00")
+                            RenderGroupModifier? rgm = RenderGroupModifiers.Find(e => e.PartName == p.Name);
+                            if (rgm != null)
                             {
-                                // Demon statue turret
-                                if (p.ModelName == "o4830")
+                                if (rgm.GroupType == RenderGroupModifier.GroupTypeEnum.DrawGroup)
                                 {
-                                    if (p.Scale == new Vector3(16, 16, 16))
+                                    if (p.DrawGroups[rgm.Index] == rgm.OldValue)
                                     {
-                                        // Ignore izalith statue turrets due to scaled collision making the turret not work.
-                                        OutputLog.Add($"Ignored Demon Statue Turret ({p.Name}) scaling.");
-                                        continue;
+                                        p.DrawGroups[rgm.Index] = rgm.NewValue;
                                     }
                                 }
-                                // Ceaseless lava object
-                                else if (p.ModelName == "o4500")
+                                else if (rgm.GroupType == RenderGroupModifier.GroupTypeEnum.DispGroup)
+                                {
+                                    if (p.DispGroups[rgm.Index] == rgm.OldValue)
+                                    {
+                                        p.DispGroups[rgm.Index] = rgm.NewValue;
+                                    }
+                                }
+                                else
+                                {
+                                    throw new NotSupportedException();
+                                }
+                            }
+                        }
+                    }
+
+                    if (p is MSB1.Part.MapPiece piece)
+                    {
+                        if (DSPorterSettings.Is_SOTE)
+                        {
+                            if (msbName == "m14_01_00_00")
+                            {
+                                // Lava fields
+                                if (p.ModelName == "m8001B1")
                                 {
                                     p.LightID = 14;
                                     p.ScatterID = 14;
                                 }
                             }
-
-                            foreach (var so in SOTE_ScaledObjectList)
+                        }
+                    }
+                    else if (p is MSB1.Part.Enemy ene)
+                    {
+                        if (DSPorterSettings.SlimeCeilingFix)
+                        {
+                            if (msbName == "m10_00_00_00")
                             {
-                                // SOTE: go through pre-scaled object list to find the corresponding pre-scaled object.
-                                if (so.Matches(p.ModelName, p.Scale))
+                                // Some slimes in the depths need to be moved downards to not clip in the walls.
+                                if (p.Name == "c3200_0006" && p.Position == new Vector3(-122.8f, -70.5f, -21.0f))
+                                    p.Position = new Vector3(-122.8f, -70.582f, -21.0f);
+                                else if (p.Name == "c3200_0003" && p.Position == new Vector3(-119.8f, -70.5f, -27.5f))
+                                    p.Position = new Vector3(-119.8f, -70.593f, -27.5f);
+                                else if (p.Name == "c3200_0002" && p.Position == new Vector3(-122.8f, -70.5f, -28.5f))
+                                    p.Position = new Vector3(-122.8f, -70.650f, -28.5f);
+                            }
+                        }
+                    }
+                    else if (p is MSB1.Part.Collision col)
+                    {
+                        if (DSPorterSettings.MiscCollisionFixes)
+                        {
+                            if (msbName == "m10_01_00_00")
+                            {
+                                if (col.Position == Vector3.Zero)
                                 {
-                                    scaledObj = so;
-                                    break;
+                                    if (col.Name == "h1000B1")
+                                    {
+                                        col.Position = new Vector3(0, 0, -0.1f);
+                                    }
                                 }
                             }
-                            if (scaledObj == null)
+                            else if (msbName == "m14_00_00_00")
                             {
-                                // Couldn't find pre-scaled object in the list, something went wrong and needs to be fixed.
-                                throw new Exception($"Couldn't find SOTE pre-scaled object for {msbName}\\{p.Name} {p.Scale}");
-                            }
-
-                            if (msb.Models.Objects.Find(e => e.Name == scaledObj.NewModelName) == null)
-                            {
-                                // Add pre-scaled object to MSB models.
-                                MSB1.Model.Object model = new()
+                                if (col.Name == "h0020B0" && col.NvmGroups[0] == 1048576)
                                 {
-                                    Name = scaledObj.NewModelName,
-                                    SibPath = $@"N:\FRPG\data\Model\obj\{scaledObj.NewModelName}\sib\{scaledObj.NewModelName}.sib"
-                                };
-                                msb.Models.Objects.Add(model);
-                            }
-
-                            OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" now uses SOTE pre-scaled object \"{scaledObj.NewModelName}\". MSB scaling was reverted in the process: {p.Scale} -> {Vector3.One}");
-                            p.ModelName = scaledObj.NewModelName;
-                            p.Scale = Vector3.One;
-                        }
-                    }
-                    /*
-                    else if (_enableScaledObjectAdjustments && Util.HasModifiedScaling(p.Scale))
-                    {
-                        _objsToPort.Add(model.Name); // todo: this goes somewhere
-
-                        string? newModelName = null;
-                        foreach (ScaledObject scaledObj in _scaledObjects)
-                        {
-                            if (scaledObj.Matches(p.ModelName, p.Scale))
-                            {
-                                newModelName = scaledObj.NewModelName;
-                                p.ModelName = newModelName;
-                                break;
+                                    col.NvmGroups[0] = 2148532224; // 1048576 -> 2148532224
+                                }
                             }
                         }
-                        if (newModelName == null)
+                    }
+                    else if (p is MSB1.Part.ConnectCollision connect)
+                    {
+                        if (DSPorterSettings.MiscCollisionFixes)
                         {
-                            ScaledObject scaledObj = CreateScaledObject(p.ModelName, p.Scale);
-                            newModelName = scaledObj.NewModelName;
-                            p.ModelName = newModelName;
-                            _scaledObjects.Add(scaledObj);
-                        }
-
-                        if (msb.Models.Objects.Find(e => e.Name == newModelName) == null)
-                        {
-                            // Add pre-scaled object to MSB models.
-                            MSB1.Model.Object model = new()
+                            if (msbName == "m10_01_00_00")
                             {
-                                Name = newModelName,
-                                SibPath = $@"N:\FRPG\data\Model\obj\{scaledObj.NewModelName}\sib\{scaledObj.NewModelName}.sib"
-                            };
-                            msb.Models.Objects.Add(model);
-                        }
-                        p.Scale = Vector3.One;
-                    }
-                    */
-                }
-                foreach (var p in msb.Parts.Collisions)
-                {
-                    if (true)
-                    {
-                        if (msbName == "m10_01_00_00")
-                        {
-                            if (p.Name == "h1023B1_0000")
-                                p.Position = new Vector3(0, 0, -1.4f);
-                            else if (p.Name == "h1000B1")
-                                p.Position = new Vector3(0, 0, -0.1f);
-                        }
-                        else if (msbName == "m14_00_00_00")
-                        {
-                            if (p.Name == "h0020B0")
-                                p.NvmGroups[0] = 2148532224; // 1048576-> 2148532224
+                                if (p.Position == Vector3.Zero)
+                                {
+                                    if (p.Name == "h1023B1_0000")
+                                    {
+                                        p.Position = new Vector3(0, 0, -1.4f);
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-
-                foreach (var p in msb.Parts.Enemies)
-                {
-                    if (true)
+                    else if (p is MSB1.Part.Object obj)
                     {
-                        if (msbName == "m10_00_00_00")
+                        if (scalingExceptionList != null && scalingExceptionList.Contains(p.Name))
                         {
-                            // Some slimes in the depths need to be moved downards to not clip in the walls.
-                            if (p.Name == "c3200_0006" && p.Position == new Vector3(-122.8f, -70.5f, -21.0f))
-                                p.Position = new Vector3 (-122.8f, -70.582f, -21.0f);
-                            else if (p.Name == "c3200_0003" && p.Position == new Vector3(-119.8f, -70.5f, -27.5f))
-                                p.Position = new Vector3(-119.8f, -70.593f, -27.5f);
-                            else if (p.Name == "c3200_0002" && p.Position == new Vector3(-122.8f, -70.5f, -28.5f))
-                                p.Position = new Vector3(-122.8f, -70.650f, -28.5f);
                         }
-                    }
-                }
-
-                foreach (var p in msb.Parts.MapPieces)
-                {
-                    if (DSPorterSettings.Is_SOTE)
-                    {
-                        if (msbName == "m14_01_00_00")
+                        else if (DescaleMSBObjects && Util.HasModifiedScaling(p.Scale))
                         {
-                            // Lava fields
-                            if (p.ModelName == "m8001B1")
+                            if (!DSPorterSettings.Is_SOTE)
                             {
-                                p.LightID = 14;
-                                p.ScatterID = 14;
+                                OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" had its scaling reverted: {p.Scale} -> {Vector3.One}");
+                                p.Scale = Vector3.One;
+                            }
+                            else
+                            {
+                                ScaledObject? scaledObj = null;
+                                if (msbName == "m14_01_00_00")
+                                {
+                                    // Demon statue turret
+                                    if (p.ModelName == "o4830")
+                                    {
+                                        if (p.Scale == new Vector3(16, 16, 16))
+                                        {
+                                            // Ignore izalith statue turrets due to scaled collision making the turret not work.
+                                            OutputLog.Add($"Ignored Demon Statue Turret ({p.Name}) scaling.");
+                                            continue;
+                                        }
+                                    }
+                                    // Ceaseless lava object
+                                    else if (p.ModelName == "o4500")
+                                    {
+                                        p.LightID = 14;
+                                        p.ScatterID = 14;
+                                    }
+                                }
+
+                                foreach (var so in SOTE_ScaledObjectList)
+                                {
+                                    // SOTE: go through pre-scaled object list to find the corresponding pre-scaled object.
+                                    if (so.Matches(p.ModelName, p.Scale))
+                                    {
+                                        scaledObj = so;
+                                        break;
+                                    }
+                                }
+                                if (scaledObj == null)
+                                {
+                                    // Couldn't find pre-scaled object in the list, something went wrong and needs to be fixed.
+                                    throw new Exception($"Couldn't find SOTE pre-scaled object for {msbName}\\{p.Name} {p.Scale}");
+                                }
+
+                                if (msb.Models.Objects.Find(e => e.Name == scaledObj.NewModelName) == null)
+                                {
+                                    // Add pre-scaled object to MSB models.
+                                    MSB1.Model.Object model = new()
+                                    {
+                                        Name = scaledObj.NewModelName,
+                                        SibPath = $@"N:\FRPG\data\Model\obj\{scaledObj.NewModelName}\sib\{scaledObj.NewModelName}.sib"
+                                    };
+                                    msb.Models.Objects.Add(model);
+                                }
+
+                                OutputLog.Add($"MSB object \"{msbName}\\{p.Name}\" now uses SOTE pre-scaled object \"{scaledObj.NewModelName}\". MSB scaling was reverted in the process: {p.Scale} -> {Vector3.One}");
+                                p.ModelName = scaledObj.NewModelName;
+                                p.Scale = Vector3.One;
                             }
                         }
                     }
@@ -1416,28 +1468,7 @@ namespace DSRPorter
 
         private void DSRPorter_GenericTPFs(string directory, string searchPattern, bool compress)
         {
-            /*
-            foreach (var path in Directory.GetFiles($@"{_dataPath_PTDE}\{directory}", searchPattern))
-            {
-                TPF tpf = TPF.Read(path);
-                foreach (TPF.Texture file in tpf)
-                {
-                    DDS dds = new(file.Bytes);
-                    dds.
-                    Debugger.Break();
-                }
-                if (compress)
-                {
-                    Util.WritePortedSoulsFile(file, _dataPath_PTDE, path, _compressionType);
-                }
-                else
-                {
-                    Util.WritePortedSoulsFile(file, _dataPath_PTDE, path);
-                }
-            }
-            Debug.WriteLine("Finished: Generic TPFS");
-            _outputLog.Add($@"Finished: {directory}\{searchPattern}");
-            */
+            throw new NotSupportedException();
         }
 
         public void LogUnportedFiles()
@@ -1622,24 +1653,23 @@ namespace DSRPorter
                     }
                 }
 
+                foreach (var path in Directory.GetFiles(OutputOverwritePath, "*", SearchOption.AllDirectories))
+                {
+                    var targetPath = $@"{DataPath_Output}\{path.Replace(OutputOverwritePath, "")}";
+                    string fileName = Path.GetFileName(path);
+                    Directory.CreateDirectory(targetPath.Replace(fileName, ""));
+                    File.Copy(path, targetPath, true);
+                    OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
+                }
+                foreach (var obj in SOTE_ScaledObjectList)
+                {
+                    if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                    {
+                        OutputLog.Add($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
+                    }
+                }
                 if (DSPorterSettings.Is_SOTE)
                 {
-                    string manualPath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
-                    foreach (var path in Directory.GetFiles(manualPath, "*", SearchOption.AllDirectories))
-                    {
-                        var targetPath = $@"{DataPath_Output}\{path.Replace(manualPath, "")}";
-                        string fileName = Path.GetFileName(path);
-                        Directory.CreateDirectory(targetPath.Replace(fileName, ""));
-                        File.Copy(path, targetPath, true);
-                        OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
-                    }
-                    foreach (var obj in SOTE_ScaledObjectList)
-                    {
-                        if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
-                        {
-                            OutputLog.Add($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
-                        }
-                    }
                     SOTE_MoveScaledObjectAnims();
                 }
 

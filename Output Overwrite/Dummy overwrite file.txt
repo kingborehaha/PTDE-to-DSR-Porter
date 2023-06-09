@@ -1,0 +1,3 @@
+Hello! This file was moved to the output folder from the Manual Overwrite folder.
+
+Delete me if you want. It's ok, I'm just data.

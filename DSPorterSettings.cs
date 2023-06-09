@@ -8,8 +8,11 @@ namespace DSRPorter
 {
     public static class DSPorterSettings
     {
-        public static bool CompileLua = true;
-
         public static bool Is_SOTE = false;
+
+        public static bool CompileLua = true;
+        public static bool SlimeCeilingFix = true;
+        public static bool MiscCollisionFixes = true;
+        public static bool RenderGroupImprovements = true;
     }
 }
