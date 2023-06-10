@@ -50,26 +50,33 @@ namespace DSRPorter
 
         public DSPorter(ProgressBar progressBar)
         {
-            _progressBar = progressBar;
-
-            if (DSPorterSettings.Is_SOTE)
+            try
             {
-                OutputOverwritePath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
-            }
+                _progressBar = progressBar;
 
-            if (DSPorterSettings.Is_SOTE)
-            {
-                FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist SOTE.txt");
-                FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist SOTE.txt");
-            }
-            else
-            {
-                FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist.txt");
-                FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist.txt");
-            }
+                if (DSPorterSettings.Is_SOTE)
+                {
+                    OutputOverwritePath = @"Y:\Projects Y\Modding\DSR\DSR port input overwrite";
+                }
 
-            MsbScaledObj_Whitelist = LoadTextResource_MsbScaledObjs();
-            MSB_RenderGroupModifiers = LoadTextResource_RenderGroupModifiers();
+                if (DSPorterSettings.Is_SOTE)
+                {
+                    FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist SOTE.txt");
+                    FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist SOTE.txt");
+                }
+                else
+                {
+                    FFX_Whitelist = LoadTextResource_FFX("FFX Whitelist.txt");
+                    FFX_Blacklist = LoadTextResource_FFX("FFX Blacklist.txt");
+                }
+
+                MsbScaledObj_Whitelist = LoadTextResource_MsbScaledObjs();
+                MSB_RenderGroupModifiers = LoadTextResource_RenderGroupModifiers();
+            }
+            catch (Exception e)
+            {
+                PorterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
+            }
         }
 
         private readonly List<long> _ffxTpfWhitelist = new()
@@ -137,7 +144,7 @@ namespace DSRPorter
                 }
                 catch
                 {
-                    throw new Exception($"Text resource load error: {pathName}.\n{string.Join("||", res)} has invalid formatting.");
+                    throw new Exception($"Text resource load error: \"{pathName}\" (\"{string.Join("||", res)}\" has invalid formatting)");
                 }
             }
 
@@ -159,7 +166,7 @@ namespace DSRPorter
                 }
                 catch
                 {
-                    throw new Exception($"Text resource load error: {pathName}.\n{res[0]} is not a valid FFX ID.");
+                    throw new Exception($"Text resource load error: \"{pathName}\" (\"{res[0]}\" is not a valid FFX ID)");
                 }
                 output.Add(id);
             }
@@ -587,8 +594,8 @@ namespace DSRPorter
                             }
                             if (!handledByCommon)
                             {
-                                // TODO: add to output instead
-                                throw new NotImplementedException("Not equipped to handle whitelisted FFX in DSR patch.ffxbnd");
+                                //throw new NotImplementedException("Not equipped to handle whitelisted FFX in DSR patch.ffxbnd");
+                                OutputLog.Add($"Error: Not equipped to handle whitelisted FFX in DSR patch.ffxbnd");
                             }
                             bnd_patch.Files.Remove(patchFile);
                         }
@@ -1499,7 +1506,6 @@ namespace DSRPorter
                             // I don't think this triggers ATM.
                             // old comment: this should be the root seal (o4610 -> o4612). apparently vanilla anims work fine for that so don't worry about it.
                             continue;
-
                         }
                         else
                         {
@@ -1524,7 +1530,6 @@ namespace DSRPorter
                     }
                 }
 
-
                 Util.WritePortedSoulsFile(bnd_target, DataPath_Output, bndPath_target, CompressionType);
             }
             Debug.WriteLine("Finished: SOTE OBJBND VANILLA ANIM TRANSFER");
@@ -1542,35 +1547,37 @@ namespace DSRPorter
 
         public void Run()
         {
-            try
+            if (PorterException == null)
             {
-                if (Directory.Exists(DataPath_Output))
+                try
                 {
-                    var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNo);
-                    if (result == DialogResult.Yes)
+                    if (Directory.Exists(DataPath_Output))
                     {
-                        result = MessageBox.Show("Send to recycle bin?\n", "Recycle vs delete", MessageBoxButtons.YesNo);
+                        var result = MessageBox.Show("Output folder already exists. Delete all output files before proceeding?", "Delete output folder?", MessageBoxButtons.YesNo);
                         if (result == DialogResult.Yes)
                         {
-                            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
-                                Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-                        }
-                        else
-                        {
-                            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
-                                Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                                Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
+                            result = MessageBox.Show("Send to recycle bin?\n", "Recycle vs delete", MessageBoxButtons.YesNo);
+                            if (result == DialogResult.Yes)
+                            {
+                                Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                                    Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                            }
+                            else
+                            {
+                                Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(DataPath_Output,
+                                    Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                                    Microsoft.VisualBasic.FileIO.RecycleOption.DeletePermanently);
+                            }
                         }
                     }
-                }
 
-                Directory.CreateDirectory(DataPath_Output);
+                    Directory.CreateDirectory(DataPath_Output);
 
-                OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
-                List<Task> taskList = new();
+                    OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
+                    List<Task> taskList = new();
 
-                taskList.AddRange(new List<Task>()
+                    taskList.AddRange(new List<Task>()
                 {
                     Task.Run(() => DSRPorter_MSB()),
                     Task.Run(() => DSRPorter_CHRBND()),
@@ -1595,56 +1602,56 @@ namespace DSRPorter
                     //
                 });
 
-                var taskCount = taskList.Count;
-                while (taskList.Any())
-                {
-                    Task[] taskArray = taskList.ToArray();
-                    Task.WaitAny(taskArray);
-                    foreach (var task in taskArray)
+                    var taskCount = taskList.Count;
+                    while (taskList.Any())
                     {
-                        if (task.IsCompleted)
+                        Task[] taskArray = taskList.ToArray();
+                        Task.WaitAny(taskArray);
+                        foreach (var task in taskArray)
                         {
-                            if (task.Exception != null)
+                            if (task.IsCompleted)
                             {
-                                throw task.Exception;
+                                if (task.Exception != null)
+                                {
+                                    throw task.Exception;
+                                }
+                                IncrementProgressBar(1 + 500 / taskCount);
+                                taskList.Remove(task);
                             }
-                            IncrementProgressBar(1 + 500 / taskCount);
-                            taskList.Remove(task);
                         }
                     }
-                }
 
-                foreach (var path in Directory.GetFiles(OutputOverwritePath, "*", SearchOption.AllDirectories))
-                {
-                    var targetPath = $@"{DataPath_Output}\{path.Replace(OutputOverwritePath, "")}";
-                    string fileName = Path.GetFileName(path);
-                    Directory.CreateDirectory(targetPath.Replace(fileName, ""));
-                    File.Copy(path, targetPath, true);
-                    OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
-                }
-                foreach (var obj in SOTE_ScaledObjectList)
-                {
-                    if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                    foreach (var path in Directory.GetFiles(OutputOverwritePath, "*", SearchOption.AllDirectories))
                     {
-                        OutputLog.Add($"Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
+                        var targetPath = $@"{DataPath_Output}\{path.Replace(OutputOverwritePath, "")}";
+                        string fileName = Path.GetFileName(path);
+                        Directory.CreateDirectory(targetPath.Replace(fileName, ""));
+                        File.Copy(path, targetPath, true);
+                        OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
                     }
+                    if (DSPorterSettings.Is_SOTE)
+                    {
+                        foreach (var obj in SOTE_ScaledObjectList)
+                        {
+                            if (!File.Exists($@"{DataPath_Output}\obj\{obj.NewModelName}.objbnd.dcx"))
+                            {
+                                OutputLog.Add($"SOTE: Couldn't find scaled object \"{obj.NewModelName}\" in the output folder!");
+                            }
+                        }
+                        SOTE_MoveScaledObjectAnims();
+                    }
+
+                    LogUnportedFiles();
+
+                    File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
                 }
-                if (DSPorterSettings.Is_SOTE)
+                catch (Exception e)
                 {
-                    SOTE_MoveScaledObjectAnims();
+                    // Capture exception to be thrown later.
+                    PorterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
                 }
-
-                LogUnportedFiles();
-
-                File.WriteAllLines($@"{DataPath_Output}\Output Log.txt", OutputLog.OrderBy(e => e));
-            }
-            catch (Exception e)
-            {
-                // Capture exception to be thrown later.
-                PorterException = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
-            }
-
             _progressBar.Invoke(() => _progressBar.Value = _progressBar.Maximum);
+            }
         }
     }
 }

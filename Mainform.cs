@@ -29,7 +29,7 @@ namespace DSRPorter
             Setting_RenderGroupImprovements.Checked = DSPorterSettings.RenderGroupImprovements;
 
 #if !DEBUG
-            Setting_isSOTE.Visible = false;
+            Setting_IsSOTE.Visible = false;
 #endif
         }
 
@@ -70,22 +70,19 @@ namespace DSRPorter
 
             System.Media.SystemSounds.Exclamation.Play();
 
-            if (porter.PorterException == null)
+            if (porter.PorterException != null)
+            {
+                var result = MessageBox.Show($"Porting process ran into an issue.\n\n" +
+                    $"{porter.PorterException.SourceException.Message}\n" +
+                    $"{porter.PorterException.SourceException.StackTrace}", "Error", MessageBoxButtons.OK);
+                this.Close();
+            }
+            else
             {
                 var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
                 if (result == DialogResult.Yes)
                     Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output file
             }
-            else
-            {
-                var result = MessageBox.Show($"Porting process ran into an issue.\n\n" +
-                    $"{porter.PorterException.SourceException.Message}\n" +
-                    $"{porter.PorterException.SourceException.StackTrace}", "Error", MessageBoxButtons.OK);
-            }
-        }
-
-        private void cb_log_field_specifics_CheckedChanged(object sender, EventArgs e)
-        {
         }
 
         private void Button_Browse_PTDE_Mod_Click(object sender, EventArgs e)

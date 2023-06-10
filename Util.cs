@@ -262,7 +262,7 @@ namespace DSPorterUtil
                 var split = line.Split("||");
                 if (split.Length != elementNum)
                 {
-                    throw new Exception($"Text resource load error: {path}.\nLine {i + 1} has invalid formatting.");
+                    throw new Exception($"Text resource load error: \"{path}\" (Line {i + 1} has invalid formatting)");
                 }
                 output.Add(split);
             }
