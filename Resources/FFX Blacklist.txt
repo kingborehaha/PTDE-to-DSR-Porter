@@ -1,1 +1,2 @@
 // List of FFX to never port to DSR
+// FFX IDs between 2000 and 2999 are automatically blacklisted, as they contain core FFX which cannot be ported.

@@ -54,6 +54,7 @@
             FolderBrowser_PTDE_Vanilla = new FolderBrowserDialog();
             FolderBrowser_DSR = new FolderBrowserDialog();
             toolTip1 = new ToolTip(components);
+            label1 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
@@ -245,6 +246,7 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(label1);
             tabPage2.Controls.Add(Setting_RenderGroupImprovements);
             tabPage2.Controls.Add(Setting_Misc_DSR_Collision);
             tabPage2.Controls.Add(Setting_SlimeCeilingFix);
@@ -262,11 +264,12 @@
             Setting_RenderGroupImprovements.AutoSize = true;
             Setting_RenderGroupImprovements.Checked = true;
             Setting_RenderGroupImprovements.CheckState = CheckState.Checked;
-            Setting_RenderGroupImprovements.Location = new Point(8, 100);
+            Setting_RenderGroupImprovements.Location = new Point(8, 168);
             Setting_RenderGroupImprovements.Name = "Setting_RenderGroupImprovements";
-            Setting_RenderGroupImprovements.Size = new Size(257, 19);
+            Setting_RenderGroupImprovements.Size = new Size(179, 19);
             Setting_RenderGroupImprovements.TabIndex = 94;
-            Setting_RenderGroupImprovements.Text = "Include DSR disp/drawgroup improvements";
+            Setting_RenderGroupImprovements.Text = "Render Group improvements";
+            toolTip1.SetToolTip(Setting_RenderGroupImprovements, "Applies rendergroup changes defined in \"MSB RenderGroup Improvements.txt\".\r\nBy default, the file contains changes introduced in DSR which are universally beneficial.");
             Setting_RenderGroupImprovements.UseVisualStyleBackColor = true;
             Setting_RenderGroupImprovements.CheckedChanged += Setting_RenderGroupImprovements_CheckedChanged;
             // 
@@ -275,7 +278,7 @@
             Setting_Misc_DSR_Collision.AutoSize = true;
             Setting_Misc_DSR_Collision.Checked = true;
             Setting_Misc_DSR_Collision.CheckState = CheckState.Checked;
-            Setting_Misc_DSR_Collision.Location = new Point(8, 75);
+            Setting_Misc_DSR_Collision.Location = new Point(8, 143);
             Setting_Misc_DSR_Collision.Name = "Setting_Misc_DSR_Collision";
             Setting_Misc_DSR_Collision.Size = new Size(190, 19);
             Setting_Misc_DSR_Collision.TabIndex = 93;
@@ -289,7 +292,7 @@
             Setting_SlimeCeilingFix.AutoSize = true;
             Setting_SlimeCeilingFix.Checked = true;
             Setting_SlimeCeilingFix.CheckState = CheckState.Checked;
-            Setting_SlimeCeilingFix.Location = new Point(8, 50);
+            Setting_SlimeCeilingFix.Location = new Point(8, 118);
             Setting_SlimeCeilingFix.Name = "Setting_SlimeCeilingFix";
             Setting_SlimeCeilingFix.Size = new Size(158, 19);
             Setting_SlimeCeilingFix.TabIndex = 92;
@@ -331,6 +334,17 @@
             FolderBrowser_DSR.RootFolder = Environment.SpecialFolder.Recent;
             FolderBrowser_DSR.ShowNewFolderButton = false;
             FolderBrowser_DSR.UseDescriptionForTitle = true;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.BackColor = Color.WhiteSmoke;
+            label1.BorderStyle = BorderStyle.FixedSingle;
+            label1.Location = new Point(5, 60);
+            label1.Name = "label1";
+            label1.Size = new Size(354, 47);
+            label1.TabIndex = 95;
+            label1.Text = "Note: these settings only affect map entities with default names\r\nand default values relevant to the change.\r\nIf your mod changes something related, it will not be overwritten.\r\n";
             // 
             // MainForm
             // 
@@ -377,5 +391,6 @@
         private CheckBox Setting_SlimeCeilingFix;
         private CheckBox Setting_CompileLua;
         private ToolTip toolTip1;
+        private Label label1;
     }
 }

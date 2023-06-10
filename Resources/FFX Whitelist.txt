@@ -1,1 +1,24 @@
 // List of FFX to always port to DSR
+// FFX IDs between 2000 and 2999 are automatically blacklisted, as they contain core FFX which cannot be ported.
+
+90000 // bonfire
+90001 // bonfire
+90002 // bonfire
+90003 // bonfire
+90004 // bonfire
+90005 // bonfire
+90006 // bonfire
+90007 // bonfire
+90008 // bonfire
+90009 // bonfire
+90010 // bonfire
+90011 // bonfire
+90012 // bonfire
+90013 // bonfire
+90014 // bonfire
+90015 // bonfire
+90016 // bonfire
+90017 // bonfire
+90018 // bonfire
+90019 // bonfire
+90020 // bonfire

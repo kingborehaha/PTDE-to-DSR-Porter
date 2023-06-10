@@ -207,20 +207,6 @@ namespace DSRPorter
             return id;
         }
 
-        public Dictionary<string, List<string>> LoadTextResource_MsbScaledObjs()
-        {
-            List<string[]> resources = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\MSB scaled object whitelist.txt", 2);
-            Dictionary<string, List<string>> output = new();
-            foreach (var resource in resources)
-            {
-                var map = resource[0];
-                var name = resource[1];
-                output.TryAdd(map, new List<string>());
-                output[map].Add(name);
-            }
-            return output;
-        }
-
         /// <summary>
         /// Compares two files from two provided paths and calculates if they are different.
         /// </summary>

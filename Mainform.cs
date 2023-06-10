@@ -159,7 +159,7 @@ namespace DSRPorter
 
         private void Setting_RenderGroupImprovements_CheckedChanged(object sender, EventArgs e)
         {
-            DSPorterSettings.RenderGroupImprovements = RenderGroupImprovements.Checked;
+            DSPorterSettings.RenderGroupImprovements = Setting_RenderGroupImprovements.Checked;
         }
     }
 }

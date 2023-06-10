@@ -72,14 +72,27 @@ namespace DSRPorter
             MSB_RenderGroupModifiers = LoadTextResource_RenderGroupModifiers();
         }
 
-        public readonly Dictionary<string, List<string>> MsbScaledObj_Whitelist;
-
         private readonly List<long> _ffxTpfWhitelist = new()
         {
             // TPF for FFX
             // Not implemented.
         };
 
+
+        public readonly Dictionary<string, List<string>> MsbScaledObj_Whitelist;
+        public Dictionary<string, List<string>> LoadTextResource_MsbScaledObjs()
+        {
+            List<string[]> resources = Util.LoadTextResource($@"{Directory.GetCurrentDirectory()}\Resources\MSB scaled object whitelist.txt", 2);
+            Dictionary<string, List<string>> output = new();
+            foreach (var resource in resources)
+            {
+                var map = resource[0];
+                var name = resource[1];
+                output.TryAdd(map, new List<string>());
+                output[map].Add(name);
+            }
+            return output;
+        }
 
         public readonly Dictionary<string, List<RenderGroupModifier>> MSB_RenderGroupModifiers;
         public class RenderGroupModifier
@@ -688,63 +701,6 @@ namespace DSRPorter
             OutputLog.Add($@"Finished: msg\*.msgbnd");
         }
 
-        /*
-        /// <summary>
-        /// Debug thing to figure out how drawvalues were changed from PTDE to DSR.
-        /// </summary>
-        public ConcurrentDictionary<string, ConcurrentBag<string>> dict = new(); // dict[cell name][list<values>]
-        private void DEBUG_CompareDrawParamRows(string paramName, PARAM.Row row_old, PARAM.Row? row_new)
-        {
-            if (row_new == null)
-                return;
-            for (var iField = 0; iField < row_old.Cells.Count; iField++)
-            {
-                var oldCell = row_old.Cells[iField];
-                var newCell = row_new.Cells[iField];
-
-                if (oldCell.Def.DisplayType == PARAMDEF.DefType.dummy8)
-                {
-                    // Skip over any padding.
-                    continue;
-                }
-
-                if (oldCell.Def.InternalName != newCell.Def.InternalName)
-                {
-                    // Fields don't match, this is a mixed-def check. Try to find correct field to compare (if it exists)
-                    newCell = row_new.Cells.FirstOrDefault(c => c.Def.InternalName == oldCell.Def.InternalName);
-                    if (newCell == null)
-                    {
-                        throw new Exception($"Couldn't find {oldCell.Def.InternalName} in new paramdef. Modify Paramdef field names to fix.");
-                    }
-                }
-                if (oldCell.Value.ToString() != newCell.Value.ToString())
-                {
-                    dict.TryAdd(oldCell.Def.InternalName, new ConcurrentBag<string>());
-                    dict[oldCell.Def.InternalName].Add($"{paramName}: {oldCell.Value} -> {newCell.Value}");
-                }
-            }
-            return;
-        }
-        */
-
-        private void AdjustDrawParamRow(PARAM param, PARAM.Row row_old, PARAM.Row? row_new)
-        {
-            if (row_new == null)
-                return;
-
-            if (param.ParamType == "LIGHT_SCATTERING_BANK")
-            {
-                //row_old["sunA"].Value = row_new["sunA"].Value;
-            }
-            if (param.ParamType == "LIGHT_BANK")
-            {
-                // Lighting is WAY too dark when using PTDE values for these two fields.
-                row_old["envSpc_colA"].Value = row_new["envDif_colA"].Value;
-                row_old["envDif_colA"].Value = row_new["envDif_colA"].Value;
-            }
-        }
-
-        private ConcurrentBag<string> _debugOutput = new();
         private void DSRPorter_TransferParams(string datapath, bool isDrawParam = false)
         {
             var paths = Directory.GetFiles(datapath, "*.parambnd");
@@ -786,7 +742,8 @@ namespace DSRPorter
                         // Couldn't find matching param in other list.
                         if (item.Key == "default_ToneCorrectBank")
                         {
-                            // DSR defs can't handle this, but it's all default values in PTDE so I doubt it matters
+                            // DSR defs can't handle this.
+                            OutputLog.Add("Skipped drawparam default_ToneCorrectBank since DSR version cannot be read with current paramdefs. This is expected behavior. If need this parambnd to be ported, contact me.");
                         }
                         else if (DSPorterSettings.Is_SOTE
                             && (item.Key.StartsWith("s18_1") || item.Key.StartsWith("m18_1")))
@@ -795,29 +752,20 @@ namespace DSRPorter
                         }
                         else
                         {
-                            throw new FileNotFoundException($"Couldn't find {item.Key} in DSR parambnd.");
+                            paramList_new[item.Key] = item.Value;
+                            OutputLog.Add($"Transferred {item.Key} to DSR even though a DSR version could not be found. Because there is there is no DSR param to compare with, it may not be compatible. Contact me if there are issues.");
                         }
                         return;
                     }
 
                     PARAM param_old = paramList_old[item.Key];
                     PARAM param_new_target = paramList_new[item.Key];
-                    List<PARAM.Row> paramRows_new = param_new_target.Rows.ToList();
-
                     PARAM? param_vanilla = null;
-
                     if (isDrawParam)
                     {
-                        // Todo: handle newly added DrawParams properly
-                        try
-                        {
-                            param_vanilla = paramList_vanilla[item.Key];
-                        }
-                        catch
-                        { 
-                        
-                        }
+                        param_vanilla = paramList_vanilla[item.Key];
                     }
+                    List<PARAM.Row> paramRows_new = param_new_target.Rows.ToList();
 
                     if (param_old.ParamType == "TONE_MAP_BANK")
                     {
@@ -978,25 +926,27 @@ namespace DSRPorter
                                     row_new["envSpc_colA"].Value = dsrSpcA;
                                 }
 
-                                // added this v2
-                                if (item.Key.StartsWith("m14"))
+                                if (DSPorterSettings.Is_SOTE)
                                 {
-                                    if (row_new.ID == 7 || row_new.ID == 14)
+                                    if (item.Key.StartsWith("m14"))
                                     {
-                                        // lost izalith lava
-                                        row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
-                                        row_new["colA_d"].Value = (short)((short)row_new["colA_d"].Value * 0.6f);
-                                        //row_new["envDif_colA"].Value = (short)row_new["envDif_colA"].Value * 0.4f;
-
-                                        if (dsrDifA > moddedDifA)
+                                        if (row_new.ID == 7 || row_new.ID == 14)
                                         {
-                                            row_new["envDif_colA"].Value = (short)(moddedDifA * 0.6f);
-                                        }
-                                        else
-                                        {
-                                            row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
-                                        }
+                                            // lost izalith lava
+                                            row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
+                                            row_new["colA_d"].Value = (short)((short)row_new["colA_d"].Value * 0.6f);
+                                            //row_new["envDif_colA"].Value = (short)row_new["envDif_colA"].Value * 0.4f;
 
+                                            if (dsrDifA > moddedDifA)
+                                            {
+                                                row_new["envDif_colA"].Value = (short)(moddedDifA * 0.6f);
+                                            }
+                                            else
+                                            {
+                                                row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
+                                            }
+
+                                        }
                                     }
                                 }
                             }
@@ -1015,18 +965,14 @@ namespace DSRPorter
                         }
                     }
 
-                    if (DSPorterSettings.Is_SOTE && param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
+                    if (param_old.ParamType == "EQUIP_PARAM_GOODS_ST")
                     {
                         foreach (var row in param_new_target.Rows)
                         {
                             row["enable_pvp"].Value = (byte)1;
                         }
                     }
-                    /*
-                    if (DSPorterSettings.IS_SOTE && param_old.ParamType == "BULLET_PARAM_ST")
-                    {
-                    }
-                    */
+
                     if (orderRows)
                     param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
                 });
@@ -1038,8 +984,6 @@ namespace DSRPorter
                     if (paramList_new.ContainsKey(name))
                         file.Bytes = paramList_new[name].Write();
                 }
-
-                //File.WriteAllLines("output\\debugOutput.txt", _debugOutput);
 
                 Util.WritePortedSoulsFile(bnd_new, DataPath_PTDE_Mod, bndPath_old, CompressionType);
             }
@@ -1138,15 +1082,17 @@ namespace DSRPorter
         /// Recursive func for porting bnd files used for objects and characters.
         /// Uses DSR .hkx files, but ports everything else.
         /// </summary>
-        private void ModifyEntityBND(BND3 bnd_old, BND3 bnd_new)
+        private void ModifyEntityBND(BND3 bnd_old_target, BND3 bnd_new)
         {
-            foreach (var file_old in bnd_old.Files.ToList())
+            foreach (var file_old in bnd_old_target.Files.ToList())
             {
+                file_old.Name = file_old.Name.Replace("win32", "x64");
+                BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
+
                 if (file_old.Name.ToLower().EndsWith(".hkx"))
                 {
                     // Check if DSR has this new HKX file so it can be logged if necessary.
-                    file_old.Name = file_old.Name.Replace("win32", "x64");
-                    if (bnd_new.Files.Find(e => e.Name == file_old.Name) == null)
+                    if (file_new == null)
                     {
                         if (DSPorterSettings.Is_SOTE)
                         {
@@ -1163,10 +1109,10 @@ namespace DSRPorter
                                 continue;
                             }
                         }
-                        OutputLog.Add($"MANUAL PORT REQUEST: Skipped \"{file_old.Name}\" since it's a newly introduced modded HKX file. This file must be ported manually.");
+                        OutputLog.Add($"MANUAL PORT REQUEST: Skipped \"{file_old.Name}\" since it's a new HKX file. This file must be ported manually.");
                     }
 
-                    bnd_old.Files.Remove(file_old);
+                    bnd_old_target.Files.Remove(file_old);
                     continue;
                 }
                 if (file_old.Name.ToLower().EndsWith(".chrtpfbhd"))
@@ -1174,27 +1120,24 @@ namespace DSRPorter
                     // TODO: to properly support this, scan to see if there was a modified chrtpfBDT in the chr folder.
                     //// If the BDT was unmodified, just use DSR BHD.
                     //// if the BDT was modified, I need to support that with a new function & probably use the moddedPTDE bhd w/ adjustments so it doesnt look like shit.
-                    OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it).");
-                    bnd_old.Files.Remove(file_old);
+                    if (file_new == null)
+                    {
+                        OutputLog.Add($"MANUAL PORT REQUEST: Skipped {file_old.Name} since it couldn't be found in DSR data. This file must be ported manually.");
+                    }
+                    else
+                    {
+                        OutputLog.Add($"Skipped {file_old.Name}, DSR version will be used instead. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it).");
+                    }
+                    bnd_old_target.Files.Remove(file_old);
                     continue;
                 }
 
-                file_old.Name = file_old.Name.Replace("win32", "x64");
-
                 if (BND3.Is(file_old.Bytes))
                 {
-                    BinderFile? file_new = bnd_new.Files.Find(e => file_old.Name == e.Name);
                     if (file_new == null)
                     {
-                        if (DSPorterSettings.Is_SOTE && file_old.Name.Contains("6010"))
-                        {
-                            return;
-                        }
-                        else
-                        {
-                            OutputLog.Add($"MANUAL PORT REQUEST: Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
-                            continue;
-                        }
+                        OutputLog.Add($"MANUAL PORT REQUEST: Skipped \"{file_old.Name}\" since it couldn't be found in DSR data. This file must be ported manually.");
+                        continue;
                     }
                     var modifiedBND = BND3.Read(file_old.Bytes);
                     ModifyEntityBND(modifiedBND, BND3.Read(file_new.Bytes));
@@ -1204,8 +1147,15 @@ namespace DSRPorter
                 {
                     if (UseDsrTextures)
                     {
-                        OutputLog.Add($"Overwrote {file_old.Name} with DSR version. If this file was modified, it must be ported manually. (Dev note: I can probably fix this. let me know if you REALLY need it).");
-                        bnd_old.Files.Remove(file_old);
+                        if (file_new == null)
+                        {
+                            OutputLog.Add($"Skipped {file_old.Name} since TPFs are currently unsupported. File could not be found in DSR data, but TPFs are often moved in DSR so this may be an expected behavior. If this file was added by your mod, it must be manually ported.");
+                        }
+                        else
+                        {
+                            OutputLog.Add($"Skipped {file_old.Name} since TPFs are currently unsupported. DSR version will be used instead.");
+                        }
+                        bnd_old_target.Files.Remove(file_old);
                     }
                 }
                 else if (TAE.Is(file_old.Bytes))
@@ -1216,38 +1166,40 @@ namespace DSRPorter
 
             foreach (var file_new in bnd_new.Files)
             {
+                // Check and include files present in DSR and not PTDE.
+                // Also includes DSR versions of files that were removed in the code above.
                 if (file_new.Name.ToLower().EndsWith(".hkx"))
                 {
-                    while (bnd_old.Files.Find(f => f.ID == file_new.ID) != null)
+                    while (bnd_old_target.Files.Find(f => f.ID == file_new.ID) != null)
                     {
                         file_new.ID++;
                     }
-                    bnd_old.Files.Add(file_new);
+                    bnd_old_target.Files.Add(file_new);
                     continue;
                 }
                 if (file_new.Name.ToLower().EndsWith(".chrtpfbhd"))
                 {
-                    while (bnd_old.Files.Find(f => f.ID == file_new.ID) != null)
+                    while (bnd_old_target.Files.Find(f => f.ID == file_new.ID) != null)
                     {
                         file_new.ID++;
                     }
-                    bnd_old.Files.Add(file_new);
+                    bnd_old_target.Files.Add(file_new);
                     continue;
                 }
                 if (TPF.Is(file_new.Bytes))
                 {
                     if (UseDsrTextures)
                     {
-                        while (bnd_old.Files.Find(f => f.ID == file_new.ID) != null)
+                        while (bnd_old_target.Files.Find(f => f.ID == file_new.ID) != null)
                         {
                             file_new.ID++;
                         }
-                        bnd_old.Files.Add(file_new);
+                        bnd_old_target.Files.Add(file_new);
                         continue;
                     }
                 }
             }
-            bnd_old.Files = bnd_old.Files.OrderBy(e => e.ID).ToList(); // This matters.  
+            bnd_old_target.Files = bnd_old_target.Files.OrderBy(e => e.ID).ToList(); // This matters.  
         }
 
         private bool _objBNDFinished = false;
@@ -1413,6 +1365,7 @@ namespace DSRPorter
                                     Debugger.Break();
                                     OutputLog.Add($"Could not compile lua AI: {e.Message}. Decompiled lua used instead.");
                                 }
+                                IncrementProgressBar(1);
                             }
                             count++;
                         }
@@ -1509,17 +1462,16 @@ namespace DSRPorter
                             continue;
                         File.Copy($@"{DataPath_DSR}\obj\{scaledObj.NewModelName}.objbnd.dcx", outputPath);
                     }
-                    _progressBar.Invoke(() => _progressBar.Increment(1 + progressBarTotal / SOTE_ScaledObjectList.Count));
+                    IncrementProgressBar(1 + progressBarTotal / SOTE_ScaledObjectList.Count);
                 }
                 OutputLog.Add($@"Ported all pre-scaled SOTE objects.");
             }
 
-            OutputLog.Add($@"Adding self-contained textures to objects added to new maps");
             foreach (var obj in _objsToPort)
             {
                 texPorter.SelfContainTextures_Objbnd(obj);
-                OutputLog.Add($@"Added self-contained textures: {obj}");
-                _progressBar.Invoke(() => _progressBar.Increment(1 + progressBarTotal / _objsToPort.Count));
+                OutputLog.Add($@"Implemented self-contained textures to {obj}");
+                IncrementProgressBar(1 + progressBarTotal / _objsToPort.Count);
             }
         }
 
@@ -1577,6 +1529,15 @@ namespace DSRPorter
             }
             Debug.WriteLine("Finished: SOTE OBJBND VANILLA ANIM TRANSFER");
             OutputLog.Add($@"Finished: obj\*.objbnd");
+        }
+
+        public void IncrementProgressBar(int amount)
+        {
+            _progressBar.Invoke(() => _progressBar.Increment(amount));
+            if (_progressBar.Value >= _progressBar.Maximum * 0.99f)
+            {
+                _progressBar.Invoke(() => _progressBar.Value = (int)(_progressBar.Value * 0.9f));
+            }
         }
 
         public void Run()
@@ -1647,7 +1608,7 @@ namespace DSRPorter
                             {
                                 throw task.Exception;
                             }
-                            _progressBar.Invoke(() => _progressBar.Increment(1 + 700 / taskCount));
+                            IncrementProgressBar(1 + 500 / taskCount);
                             taskList.Remove(task);
                         }
                     }
