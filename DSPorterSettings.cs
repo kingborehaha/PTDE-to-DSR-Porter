@@ -14,5 +14,6 @@ namespace DSRPorter
         public static bool SlimeCeilingFix = true;
         public static bool MiscCollisionFixes = true;
         public static bool RenderGroupImprovements = true;
+        //public static bool DrawGroup_ChooseLeastShiny = true;
     }
 }
