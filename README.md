@@ -1,29 +1,38 @@
 # PTDE to DSR Porter
 Tool for porting PTDE mods to DSR
 
-Built to support the following files:
+Support the following file types:
 * FFX
 * ESD (talk/chr)
 * EMEVD
 * GameParam
-* DrawParam (Values will be offset)
+* DrawParam (Values are offset relatively. Manual tweaks [preferably through code] is encouraged)
 * ANIBND (Uses DSR HKX)
 * CHRBND (Uses DSR HKX)
 * OBJBND (Uses DSR HKX) (Object textures will become self-contained when an object is added to a new msb)
-* LUABND (Decompiled lua only. Compiled lua will be replaceed with DSR version)
-* Parts
+* LUABND (Requires decompiled lua. Lua can optionally be compiled during porting to reduce lua memory footprint)
+* PARTSBND
 * MSB
-* Misc (breakobj, sound)
+* breakobj, sound (natively compatible)
 
-# Requirements for use
+TPF conversion is not supported at the moment, DSR versions of files will be used when possible.
+
+# Program Requirements
+* .NET 6.0 Desktop Runtime [link]
+
+# Game File Requirements
 * Folder containing modified PTDE files
 * Unpacked Vanilla PTDE installion
 * DSR installation
 
 # Misc Info
-* Scaled objects not included in exception .txt file will be reverted to default scaling
+* Once the program is finished, there will be an output log that contains info on what the program did/didn't do, detailing things that must be manually ported
+* Several resource .txt files are i ncluded in the program that let you define more detailed behavior during the porting procress. Including:
+** Scaled objects to not be reverted to default scaling
+** FFX to always/never port to DSR in spite of if they were modified
 
 # Program Info
 * Uses SoulsFormats [link]
 * Uses SoulsFormatsExtensions [link]
+* Contains paramdefs from DSMapStudio [link]
 * Thanks to Dropoff for helping figure out FFX conversion.
