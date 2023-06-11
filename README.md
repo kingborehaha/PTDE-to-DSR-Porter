@@ -1,7 +1,7 @@
 # PTDE to DSR Porter
 Tool for porting PTDE mods to DSR
 
-Supports the following file types:
+### Supports the following file types:
 * FFX
 * ESD (talkesd/chresd)
 * EMEVD
@@ -17,15 +17,15 @@ Supports the following file types:
 
 TPF conversion is not supported at the moment, DSR TPFs will be used (when possible).
 
-Contains optional settings to:
-* Apply DSR dispgroup/drawgroup improvements.
+### Contains optional settings to:
+* Apply DSR dispgroup/drawgroup improvements
 * Compile lua to reduce lua memory footprint
 * Other misc improvements and fixes
 
-# Program Requirements
+## Program Requirements
 * .NET 6.0 Desktop Runtime: https://dotnet.microsoft.com/en-us/download/dotnet/6.0
 
-# How to use
+## How to use
 * Start the program and provide the locations of:
 * * Folder containing PTDE mod files
 * * Folder containing unpacked vanilla PTDE files
@@ -33,7 +33,7 @@ Contains optional settings to:
 * Click the port button
 * The program runs luac50.exe for lua compilation. If it repeatedly prompts you to run, you may need to adjust security permissions (exe is located in "Resources\lua").
 
-# Misc Info
+## Misc Info
 * Once the program is finished, there will be an output log that contains info on what the program did/didn't do, detailing things that must be manually ported
 * Resource txt files are included which lets you modify porting behavior for certain systems, including:
 * * Which scaled MSB objects to not revert to default scaling
