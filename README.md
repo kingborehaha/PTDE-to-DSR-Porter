@@ -32,8 +32,8 @@ TPF conversion is not supported at the moment, DSR TPFs will be used (when possi
 * * Folder containing DSR files
 * Click the port button
 * * Note: The program runs luac50.exe for lua compilation. If it repeatedly prompts you to run, you may need to adjust security permissions (exe is located in "Resources\lua")
-* Once the porting process is finished, ported files can be found in the "Output" folder, which also contains "Output Log.txt".
-* Review "Output Log.txt" for issues during the porting process and to see if any files must be ported manually.
+* Once the porting process is finished, ported files can be found in the "Output" folder, which also contains "Output Log.txt"
+* Review "Output Log.txt" for issues during the porting process and to see if any files must be ported manually
 
 ## Misc Info
 * Once the program is finished, there will be an output log that contains info on what the program did/didn't do, detailing things that must be manually ported
