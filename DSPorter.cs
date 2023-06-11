@@ -1627,7 +1627,7 @@ namespace DSRPorter
                         string fileName = Path.GetFileName(path);
                         Directory.CreateDirectory(targetPath.Replace(fileName, ""));
                         File.Copy(path, targetPath, true);
-                        OutputLog.Add($"Ported manually prepared file \"{fileName}\"");
+                        OutputLog.Add($"Ported output overwrite file \"{fileName}\"");
                     }
                     if (DSPorterSettings.Is_SOTE)
                     {

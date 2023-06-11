@@ -44,8 +44,8 @@
             Button_Browse_PTDE_Vanilla = new Button();
             label4 = new Label();
             ProgramProgressBar = new ProgressBar();
-            Button_Info = new Button();
             tabPage2 = new TabPage();
+            label1 = new Label();
             Setting_RenderGroupImprovements = new CheckBox();
             Setting_Misc_DSR_Collision = new CheckBox();
             Setting_SlimeCeilingFix = new CheckBox();
@@ -54,7 +54,6 @@
             FolderBrowser_PTDE_Vanilla = new FolderBrowserDialog();
             FolderBrowser_DSR = new FolderBrowserDialog();
             toolTip1 = new ToolTip(components);
-            label1 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
@@ -107,11 +106,11 @@
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(10, 206);
+            label3.Location = new Point(20, 206);
             label3.Name = "label3";
-            label3.Size = new Size(82, 15);
+            label3.Size = new Size(54, 15);
             label3.TabIndex = 75;
-            label3.Text = "DSR Mod Files";
+            label3.Text = "DSR Files";
             // 
             // tabControl1
             // 
@@ -136,7 +135,6 @@
             tabPage1.Controls.Add(Button_Browse_PTDE_Vanilla);
             tabPage1.Controls.Add(label4);
             tabPage1.Controls.Add(ProgramProgressBar);
-            tabPage1.Controls.Add(Button_Info);
             tabPage1.Controls.Add(Button_Browse_PTDE_Mod);
             tabPage1.Controls.Add(Button_Activate);
             tabPage1.Controls.Add(Button_Browse_DSR);
@@ -202,7 +200,7 @@
             Button_SOTE_set_paths.TabIndex = 84;
             Button_SOTE_set_paths.Text = "Debug SOTE: set paths";
             Button_SOTE_set_paths.UseVisualStyleBackColor = true;
-            Button_SOTE_set_paths.Click += debug_button_Click;
+            Button_SOTE_set_paths.Click += Button_SOTE_set_paths_Click;
             // 
             // Button_Browse_PTDE_Vanilla
             // 
@@ -233,17 +231,6 @@
             ProgramProgressBar.Size = new Size(353, 23);
             ProgramProgressBar.TabIndex = 80;
             // 
-            // Button_Info
-            // 
-            Button_Info.Enabled = false;
-            Button_Info.Location = new Point(314, 6);
-            Button_Info.Name = "Button_Info";
-            Button_Info.Size = new Size(45, 23);
-            Button_Info.TabIndex = 79;
-            Button_Info.Text = "Info";
-            Button_Info.UseVisualStyleBackColor = true;
-            Button_Info.Click += Button_Info_Click;
-            // 
             // tabPage2
             // 
             tabPage2.Controls.Add(label1);
@@ -259,12 +246,23 @@
             tabPage2.Text = "Options";
             tabPage2.UseVisualStyleBackColor = true;
             // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.BackColor = Color.WhiteSmoke;
+            label1.BorderStyle = BorderStyle.FixedSingle;
+            label1.Location = new Point(5, 104);
+            label1.Name = "label1";
+            label1.Size = new Size(354, 47);
+            label1.TabIndex = 95;
+            label1.Text = "Note: these settings only affect map entities with default names\r\nand default values relevant to the change.\r\nIf your mod changes something related, it will not be overwritten.\r\n";
+            // 
             // Setting_RenderGroupImprovements
             // 
             Setting_RenderGroupImprovements.AutoSize = true;
             Setting_RenderGroupImprovements.Checked = true;
             Setting_RenderGroupImprovements.CheckState = CheckState.Checked;
-            Setting_RenderGroupImprovements.Location = new Point(8, 168);
+            Setting_RenderGroupImprovements.Location = new Point(8, 212);
             Setting_RenderGroupImprovements.Name = "Setting_RenderGroupImprovements";
             Setting_RenderGroupImprovements.Size = new Size(179, 19);
             Setting_RenderGroupImprovements.TabIndex = 94;
@@ -278,11 +276,11 @@
             Setting_Misc_DSR_Collision.AutoSize = true;
             Setting_Misc_DSR_Collision.Checked = true;
             Setting_Misc_DSR_Collision.CheckState = CheckState.Checked;
-            Setting_Misc_DSR_Collision.Location = new Point(8, 143);
+            Setting_Misc_DSR_Collision.Location = new Point(8, 187);
             Setting_Misc_DSR_Collision.Name = "Setting_Misc_DSR_Collision";
-            Setting_Misc_DSR_Collision.Size = new Size(190, 19);
+            Setting_Misc_DSR_Collision.Size = new Size(188, 19);
             Setting_Misc_DSR_Collision.TabIndex = 93;
-            Setting_Misc_DSR_Collision.Text = "Misc DSR collision adjustments";
+            Setting_Misc_DSR_Collision.Text = "DSR msb collision adjustments";
             toolTip1.SetToolTip(Setting_Misc_DSR_Collision, "Replicates misc collision adjustments present in DSR.\r\nOffsets certain collision positions and adjusts 1 nvmgroup.\r\n");
             Setting_Misc_DSR_Collision.UseVisualStyleBackColor = true;
             Setting_Misc_DSR_Collision.CheckedChanged += Setting_Misc_DSR_Collision_CheckedChanged;
@@ -292,7 +290,7 @@
             Setting_SlimeCeilingFix.AutoSize = true;
             Setting_SlimeCeilingFix.Checked = true;
             Setting_SlimeCeilingFix.CheckState = CheckState.Checked;
-            Setting_SlimeCeilingFix.Location = new Point(8, 118);
+            Setting_SlimeCeilingFix.Location = new Point(8, 162);
             Setting_SlimeCeilingFix.Name = "Setting_SlimeCeilingFix";
             Setting_SlimeCeilingFix.Size = new Size(158, 19);
             Setting_SlimeCeilingFix.TabIndex = 92;
@@ -306,7 +304,7 @@
             Setting_CompileLua.AutoSize = true;
             Setting_CompileLua.Checked = true;
             Setting_CompileLua.CheckState = CheckState.Checked;
-            Setting_CompileLua.Location = new Point(8, 25);
+            Setting_CompileLua.Location = new Point(8, 24);
             Setting_CompileLua.Name = "Setting_CompileLua";
             Setting_CompileLua.Size = new Size(90, 19);
             Setting_CompileLua.TabIndex = 91;
@@ -334,17 +332,6 @@
             FolderBrowser_DSR.RootFolder = Environment.SpecialFolder.Recent;
             FolderBrowser_DSR.ShowNewFolderButton = false;
             FolderBrowser_DSR.UseDescriptionForTitle = true;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.BackColor = Color.WhiteSmoke;
-            label1.BorderStyle = BorderStyle.FixedSingle;
-            label1.Location = new Point(5, 60);
-            label1.Name = "label1";
-            label1.Size = new Size(354, 47);
-            label1.TabIndex = 95;
-            label1.Text = "Note: these settings only affect map entities with default names\r\nand default values relevant to the change.\r\nIf your mod changes something related, it will not be overwritten.\r\n";
             // 
             // MainForm
             // 
@@ -374,7 +361,6 @@
         private TabControl tabControl1;
         private TabPage tabPage1;
         private TabPage tabPage2;
-        private Button Button_Info;
         public ProgressBar ProgramProgressBar;
         private Button Button_Browse_PTDE_Vanilla;
         private Label label4;

@@ -30,6 +30,7 @@ namespace DSRPorter
 
 #if !DEBUG
             Setting_IsSOTE.Visible = false;
+            Button_SOTE_set_paths.Visible = false;
 #endif
         }
 
@@ -118,7 +119,7 @@ namespace DSRPorter
             CheckEnableActivateButton();
         }
 
-        private void debug_button_Click(object sender, EventArgs e)
+        private void Button_SOTE_set_paths_Click(object sender, EventArgs e)
         {
             string ptdePath_Vanilla = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA vanilla";
             string ptdePath = @"V:\VSteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\SOTE storage\SOTE DSR port input\DATA";
