@@ -41,6 +41,10 @@ HKX and TPF conversion are not supported at the moment, DSR files will be used (
 * * Which scaled MSB objects to not revert to default scaling
 * * Which FFX to always/never port to DSR, in spite of if they were modified (bonfire FFX included by default)
 
+# Changelog
+### v1.0.1
+* Fixed DSR folder browser saying it wanted PTDE files
+
 # Credits
 * SoulsFormats: https://github.com/JKAnderson/SoulsFormats
 * SoulsFormatsExtensions: https://github.com/Meowmaritus/SoulsFormatsExtensions
