@@ -432,6 +432,18 @@ namespace DSRPorter
                         trapffx2.EffectID = 815;
                         trapRegion2.Position = new Vector3(74.524f, 26.275f, 266.305f);
                     }
+                    else if (msbName == "m18_00_00_00")
+                    {
+                        // SOTE remove dreamer exit fog gate from play area
+                        var ffx = msb.Events.SFX.Find(e => e.Name == "SFX_fog_eclipse_exit_2");
+                        var region = msb.Regions.Regions.Find(e => e.Name == "SFX_n_fog_eclipse_exit_2");
+
+                        if (ffx == null || region == null)
+                        {
+                            throw new Exception("Couldn't find m18_00_00_00 SOTE dreamer exit fog gate ffx/region by name");
+                        }
+                        region.Position = new Vector3(0f, 0f, 0f);
+                    }
                 }
 
                 Util.WritePortedSoulsFile(msb, DataPath_PTDE_Mod, path);
