@@ -43,6 +43,7 @@ HKX and TPF conversion are not supported at the moment, DSR files will be used (
 
 # Changelog
 ### v1.0.1
+* Fixed blacklisted FFX not being ported to ffxbnds that did not contain the FFX originally
 * Fixed DSR folder browser saying it wanted PTDE files
 
 # Credits

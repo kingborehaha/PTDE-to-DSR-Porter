@@ -1,4 +1,4 @@
-// List of FFX to always port to DSR (SOTE only)
+// List of FFX to always convert while porting to DSR (in spite of modified status)
 // FFX IDs between 2000 and 2999 are automatically blacklisted, as they contain core FFX which cannot be ported.
 
 // For baby skeleton poison AOE (which uses toxic fog effect)

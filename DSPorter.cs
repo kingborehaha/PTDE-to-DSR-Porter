@@ -468,8 +468,12 @@ namespace DSRPorter
             if (paths.Length == 0)
                 return;
 
+            // List for porting blacklisted FFX from bnd to bnd
+            List<(string, long, BinderFile?)> ffxPortOnlyList = new(); // Target BND, ffx ID, FFX
+
             foreach (var path in paths)
             {
+                string bndName = Path.GetFileNameWithoutExtension(path);
                 var bnd_PTDE_modded = BND3.Read(path);
                 var bnd_PTDE_vanilla = BND3.Read(path.Replace(DataPath_PTDE_Mod, DataPath_PTDE_Vanilla));
                 var bnd_DSR_target = BND3.Read(path.Replace(DataPath_PTDE_Mod, DataPath_DSR) + ".dcx");
@@ -511,13 +515,25 @@ namespace DSRPorter
                                 }
                             }
                         }
-                    }
-                    if (is_ffx)
-                    {
-                        if (FFX_Blacklist.Contains(fileID))
+                        if (is_ffx)
                         {
-                            // Present in blacklist, skip this FFX.
-                            continue;
+                            if (FFX_Blacklist.Contains(fileID))
+                            {
+                                // Present in blacklist, skip this FFX.
+                                continue;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (is_ffx)
+                        {
+                            if (FFX_Blacklist.Contains(fileID))
+                            {
+                                // Present in blacklist, do not convert this FFX. Try to port DSR version of FFX to this bnd.
+                                ffxPortOnlyList.Add((bndName, fileID, null));
+                                continue;
+                            }
                         }
                     }
 
@@ -565,9 +581,32 @@ namespace DSRPorter
                 Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_PTDE_Mod, path, CompressionType);
             }
 
-            // Make a second pass for whitelisted FFX in ffxbnds not used by SOTE PTDE
+            // Make a second pass for whitelisted FFX in DSR ffxbnds not present in modded PTDE files
+            // Also gather any blacklisted DSR FFX that need to be ported
             foreach (var dsrPath in Directory.GetFiles($@"{DataPath_DSR}\sfx", "*.ffxbnd.dcx"))
             {
+                string bndName = Path.GetFileNameWithoutExtension(dsrPath).Replace(".ffxbnd", "");
+                BND3 bnd_DSR_target = BND3.Read(dsrPath);
+
+                // Gather blacklisted DSR FFX for direct porting during third pass
+                foreach (var file in bnd_DSR_target.Files)
+                {
+                    if (FXR1.Is(file.Bytes))
+                    {
+                        long fileID = GetFileIdFromName(file.Name);
+                        for (var i = 0; i < ffxPortOnlyList.Count; i++)
+                        {
+                            var portFFX = ffxPortOnlyList[i];
+                            if (portFFX.Item2 == fileID)
+                            {
+                                portFFX.Item3 = file;
+                                ffxPortOnlyList[i] = portFFX;
+                            }
+                        }
+                    }
+
+                }
+
                 if (dsrPath.EndsWith("Patch.ffxbnd.dcx"))
                 {
                     // It seems like dupe FFX present in common already take precedence over patch so I don't believe this is necessary.
@@ -609,9 +648,9 @@ namespace DSRPorter
                 var fileName = Path.GetFileNameWithoutExtension(dsrPath);
                 if (Directory.GetFiles($@"{DataPath_Output}\sfx", "*.ffxbnd.dcx").ToList().Find(e => Path.GetFileNameWithoutExtension(e) == fileName) != null)
                 {
+                    // Output already contains this bnd, so any whitelisted FFX will have already been ported.
                     continue;
                 }
-                BND3 bnd_DSR_target = BND3.Read(dsrPath);
                 BND3 bnd_PTDE_vanilla = BND3.Read(dsrPath.Replace(DataPath_DSR, DataPath_PTDE_Vanilla).Replace(".dcx", ""));
                 foreach (var file in bnd_DSR_target.Files)
                 {
@@ -626,13 +665,58 @@ namespace DSRPorter
                         ffx_PTDE.Wide = true;
                         file.Bytes = ffx_PTDE.Write();
                         portThisBND = true;
-                        OutputLog.Add($"FFX: Ported whitelist FFX \"{file.Name}\"");
+                        OutputLog.Add($"FFX: Ported whitelist FFX \"{file.Name}\" to \"{bndName}\".");
                     }
                 }
                 if (portThisBND)
                 {
                     Util.WritePortedSoulsFile(bnd_DSR_target, DataPath_DSR, dsrPath, CompressionType);
-                    OutputLog.Add($"FFX: Included \"{fileName}.ffxbnd.dcx\" because it had whitelisted FFX");
+                    OutputLog.Add($"FFX: Included \"{bndName}.ffxbnd.dcx\" because it had whitelisted FFX.");
+                }
+            }
+
+            // Third pass: move any blacklisted FFX that need to be ported from DSR BND to output BND
+            foreach (var outputBndPath in Directory.GetFiles($@"{DataPath_Output}\sfx", "*.ffxbnd.dcx"))
+            {
+                bool portThisBND = false;
+                string bndName = Path.GetFileNameWithoutExtension(outputBndPath).Replace(".ffxbnd", "");
+                BND3? outputBND = null;
+                foreach (var portFFX in ffxPortOnlyList.ToList())
+                {
+                    if (portFFX.Item1 == bndName)
+                    {
+                        outputBND ??= BND3.Read(outputBndPath);
+                        var ffxFile = portFFX.Item3;
+                        if (ffxFile == null)
+                        {
+                            OutputLog.Add($"FFX: Could not locate \"FFX ID {portFFX.Item2}\" in DSR files for blacklisted porting. Fix by removing this FFX from blacklist or resolve FFX not being in DSR files.");
+                            continue;
+                        }
+                        if (outputBND.Files.Find(e => e.Name == ffxFile.Name) == null)
+                        {
+                            // BND does not already contain FFX, port it.
+                            outputBND.Files.Add(ffxFile);
+                            ffxPortOnlyList.Remove(portFFX);
+                            portThisBND = true;
+                        }
+                        else
+                        {
+                            // BND already contains FFX
+                            ffxPortOnlyList.Remove(portFFX);
+                        }
+                    }
+                }
+                if (portThisBND)
+                {
+                    outputBND!.Files = outputBND.Files.OrderBy(e => e.ID).ToList();
+                    outputBND.Write(outputBndPath);
+                }
+            }
+            if (ffxPortOnlyList.Count > 0)
+            {
+                foreach (var ffx in ffxPortOnlyList)
+                {
+                    OutputLog.Add($"FFX: Failed to port blacklisted FFX \"FFX ID {ffx.Item2}\" to \"{ffx.Item1}\".");
                 }
             }
 
@@ -1578,29 +1662,29 @@ namespace DSRPorter
                     List<Task> taskList = new();
 
                     taskList.AddRange(new List<Task>()
-                {
-                    Task.Run(() => DSRPorter_MSB()),
-                    Task.Run(() => DSRPorter_CHRBND()),
-                    Task.Run(() => DSRPorter_OBJBND()),
-                    Task.Run(() => DSRPorter_LUABND()),
-                    Task.Run(() => DSRPorter_ANIBND()),
-                    Task.Run(() => DSRPorter_ESD()),
-                    Task.Run(() => DSRPorter_MSGBND()),
-                    Task.Run(() => DSRPorter_EMEVD()),
-                    Task.Run(() => DSRPorter_FFX()),
+                    {
+                        Task.Run(() => DSRPorter_MSB()),
+                        Task.Run(() => DSRPorter_CHRBND()),
+                        Task.Run(() => DSRPorter_OBJBND()),
+                        Task.Run(() => DSRPorter_LUABND()),
+                        Task.Run(() => DSRPorter_ANIBND()),
+                        Task.Run(() => DSRPorter_ESD()),
+                        Task.Run(() => DSRPorter_MSGBND()),
+                        Task.Run(() => DSRPorter_EMEVD()),
+                        Task.Run(() => DSRPorter_FFX()),
 
-                    Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
-                    Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)),
+                        Task.Run(() => DSRPorter_GenericFiles(@"sound", "*")),
+                        Task.Run(() => DSRPorter_GenericBNDs(@"parts", "*.partsbnd", true)),
 
-                    Task.Run(() => DSRPorter_ObjTextures()),
+                        Task.Run(() => DSRPorter_ObjTextures()),
 
-                    //
-                    Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
-                    Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
-                    Task.Run(() => DSRPorter_GameParam()),
-                    Task.Run(() => DSRPorter_DrawParam()),
-                    //
-                });
+                        //
+                        Task.Run(() => _paramdefs_ptde = Util.LoadParamDefXmls("DS1")),
+                        Task.Run(() => _paramdefs_dsr = Util.LoadParamDefXmls("DS1R")),
+                        Task.Run(() => DSRPorter_GameParam()),
+                        Task.Run(() => DSRPorter_DrawParam()),
+                        //
+                    });
 
                     var taskCount = taskList.Count;
                     while (taskList.Any())
