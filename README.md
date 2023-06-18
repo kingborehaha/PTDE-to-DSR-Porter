@@ -6,16 +6,16 @@ Tool for porting PTDE mods to DSR
 * ESD (talkesd/chresd)
 * EMEVD
 * GameParam
-* DrawParam (Values are offset relatively. Manual tweaks [preferably through code] is encouraged)
+* DrawParam (Values are offset relatively. Manual tweaks [preferably through code] are encouraged)
 * ANIBND (Uses DSR HKX)
 * CHRBND (Uses DSR HKX)
 * OBJBND (Uses DSR HKX) (Object textures will become self-contained when an object is added to a new msb)
-* LUABND (Requires decompiled lua. Lua can optionally be compiled during porting to reduce lua memory footprint)
+* LUABND (Ports decompiled lua)
 * PARTSBND
 * MSB
 * Sound (natively compatible)
 
-TPF conversion is not supported at the moment, DSR TPFs will be used (when possible).
+HKX and TPF conversion are not supported at the moment, DSR files will be used (when possible).
 
 ### Contains optional settings to:
 * Apply DSR dispgroup/drawgroup improvements

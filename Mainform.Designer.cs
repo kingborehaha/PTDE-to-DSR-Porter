@@ -328,7 +328,7 @@
             // 
             // FolderBrowser_DSR
             // 
-            FolderBrowser_DSR.Description = "Select folder with PTDE mod files";
+            FolderBrowser_DSR.Description = "Select folder with DSR files";
             FolderBrowser_DSR.RootFolder = Environment.SpecialFolder.Recent;
             FolderBrowser_DSR.ShowNewFolderButton = false;
             FolderBrowser_DSR.UseDescriptionForTitle = true;
