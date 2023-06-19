@@ -434,13 +434,13 @@ namespace DSRPorter
                     }
                     else if (msbName == "m18_00_00_00")
                     {
-                        // SOTE remove dreamer exit fog gate from play area
-                        var ffx = msb.Events.SFX.Find(e => e.Name == "SFX_fog_eclipse_exit_2");
+                        // SOTE remove dreamer exit: move fog gate out of play area
+                        //var ffx = msb.Events.SFX.Find(e => e.Name == "SFX_fog_eclipse_exit_2");
                         var region = msb.Regions.Regions.Find(e => e.Name == "SFX_n_fog_eclipse_exit_2");
 
-                        if (ffx == null || region == null)
+                        if (region == null)
                         {
-                            throw new Exception("Couldn't find m18_00_00_00 SOTE dreamer exit fog gate ffx/region by name");
+                            throw new Exception("Couldn't find m18_00_00_00 SOTE dreamer exit fog gate region by name.");
                         }
                         region.Position = new Vector3(0f, 0f, 0f);
                     }
