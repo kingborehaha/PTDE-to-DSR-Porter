@@ -566,8 +566,8 @@ namespace DSRPorter
                         file_PTDE_modded.Bytes = ffx_PTDE_modded.Write();
                     }
 
-                    file_PTDE_modded.Name = file_PTDE_modded.Name.Replace("win32", "x64");
-                    var file_dsr_target = bnd_DSR_target.Files.Find(f => f.Name == file_PTDE_modded.Name);
+                    file_PTDE_modded.Name = file_PTDE_modded.Name.Replace("win32", "x64").Replace(@"FRPG\data\", "");
+                    var file_dsr_target = bnd_DSR_target.Files.Find(f => GetFileIdFromName(f.Name) == fileID);
                     var dsrBndName = Path.GetFileName($@"{path}.dcx");
                     var outputName = $"\"{dsrBndName}\\{Path.GetFileName(file_PTDE_modded.Name)}\"";
 
