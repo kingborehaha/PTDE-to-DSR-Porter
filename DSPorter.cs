@@ -1073,11 +1073,19 @@ namespace DSRPorter
                         foreach (var row in param_new_target.Rows)
                         {
                             row["enable_pvp"].Value = (byte)1;
+                            if (DSPorterSettings.EmptyEstusFFX)
+                            {
+                                if (row.ID >= 200 && row.ID <= 215 && row.ID % 2 == 0)
+                                {
+                                    // Estus: DSR uses different FFX when estus is empty
+                                    row["sfxVariationId"].Value = (int)49;
+                                }
+                            }
                         }
                     }
 
                     if (orderRows)
-                    param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
+                        param_new_target.Rows = param_new_target.Rows.OrderBy(e => e.ID).ToList();
                 });
 
                 // Save each param, then the parambnd
@@ -1672,6 +1680,11 @@ namespace DSRPorter
 
                     OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                     List<Task> taskList = new();
+
+                    //
+                    //DSRPorter_FFX();
+                    //throw new Exception("debug mode, delete us m'lord");
+                    //
 
                     taskList.AddRange(new List<Task>()
                     {

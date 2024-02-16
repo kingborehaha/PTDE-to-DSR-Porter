@@ -54,6 +54,7 @@
             FolderBrowser_PTDE_Vanilla = new FolderBrowserDialog();
             FolderBrowser_DSR = new FolderBrowserDialog();
             toolTip1 = new ToolTip(components);
+            Setting_EmptyEstusFFX = new CheckBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
@@ -233,6 +234,7 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(Setting_EmptyEstusFFX);
             tabPage2.Controls.Add(label1);
             tabPage2.Controls.Add(Setting_RenderGroupImprovements);
             tabPage2.Controls.Add(Setting_Misc_DSR_Collision);
@@ -333,6 +335,20 @@
             FolderBrowser_DSR.ShowNewFolderButton = false;
             FolderBrowser_DSR.UseDescriptionForTitle = true;
             // 
+            // Setting_EmptyEstusFFX
+            // 
+            Setting_EmptyEstusFFX.AutoSize = true;
+            Setting_EmptyEstusFFX.Checked = true;
+            Setting_EmptyEstusFFX.CheckState = CheckState.Checked;
+            Setting_EmptyEstusFFX.Location = new Point(8, 237);
+            Setting_EmptyEstusFFX.Name = "Setting_EmptyEstusFFX";
+            Setting_EmptyEstusFFX.Size = new Size(186, 19);
+            Setting_EmptyEstusFFX.TabIndex = 96;
+            Setting_EmptyEstusFFX.Text = "Empty estus uses different FFX";
+            toolTip1.SetToolTip(Setting_EmptyEstusFFX, "Unlike PTDE, DSR uses two different FFX for empty estus and fill estus. With this setting, estus will be made to use these two FFX.");
+            Setting_EmptyEstusFFX.UseVisualStyleBackColor = true;
+            Setting_EmptyEstusFFX.CheckedChanged += Setting_EmptyEstusFFX_CheckedChanged;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -378,5 +394,6 @@
         private CheckBox Setting_CompileLua;
         private ToolTip toolTip1;
         private Label label1;
+        private CheckBox Setting_EmptyEstusFFX;
     }
 }

@@ -159,5 +159,11 @@ namespace DSRPorter
         {
             DSPorterSettings.RenderGroupImprovements = Setting_RenderGroupImprovements.Checked;
         }
+
+        private void Setting_EmptyEstusFFX_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.EmptyEstusFFX = Setting_EmptyEstusFFX.Checked;
+
+        }
     }
 }

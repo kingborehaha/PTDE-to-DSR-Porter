@@ -15,5 +15,10 @@ namespace DSRPorter
         public static bool MiscCollisionFixes = true;
         public static bool RenderGroupImprovements = true;
         //public static bool DrawGroup_ChooseLeastShiny = true;
+
+        /// <summary>
+        /// DSR has different FFX for empty estus vs full estus.
+        /// </summary>
+        public static bool EmptyEstusFFX = true; 
     }
 }
