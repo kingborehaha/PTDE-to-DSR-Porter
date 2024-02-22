@@ -1802,9 +1802,9 @@ namespace DSRPorter
                     OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                     List<Task> taskList = new();
 
-                    if (true)
+                    if (false)
                     {
-                        MessageBox.Show("Selective exececution mode is active\n\nRemember to disable us on release, m'lord", "Notice", MessageBoxButtons.OK);
+                        MessageBox.Show("Selective execcution mode is active\n\nRemember to disable us on release, m'lord", "Notice", MessageBoxButtons.OK);
 
                         DSRPorter_MSB();
                         /*
