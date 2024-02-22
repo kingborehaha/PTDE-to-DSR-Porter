@@ -19,6 +19,8 @@ namespace DSRPorter
         /// <summary>
         /// DSR has different FFX for empty estus vs full estus.
         /// </summary>
-        public static bool EmptyEstusFFX = true; 
+        public static bool EmptyEstusFFX = true;
+
+        public static bool m12_01_AddExtraDSRNavmesh = true;
     }
 }

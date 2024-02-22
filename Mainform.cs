@@ -82,7 +82,7 @@ namespace DSRPorter
             {
                 var result = MessageBox.Show("Finished! Open output folder?", "Finished", MessageBoxButtons.YesNo);
                 if (result == DialogResult.Yes)
-                    Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output file
+                    Process.Start(@"explorer.exe", $@"{Directory.GetCurrentDirectory()}\output"); // Open up the output folder
             }
         }
 
@@ -164,6 +164,11 @@ namespace DSRPorter
         {
             DSPorterSettings.EmptyEstusFFX = Setting_EmptyEstusFFX.Checked;
 
+        }
+
+        private void Setting_m12_01_navmesh_fix_CheckedChanged(object sender, EventArgs e)
+        {
+            DSPorterSettings.m12_01_AddExtraDSRNavmesh = Setting_m12_01_AddNewNavmesh.Checked;
         }
     }
 }

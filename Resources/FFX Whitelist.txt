@@ -8,7 +8,7 @@
 90004 // bonfire
 90005 // bonfire
 90006 // bonfire
-90007 // bonfire
+// 90007 // bonfire "Just Lit"
 90008 // bonfire
 90009 // bonfire
 90010 // bonfire

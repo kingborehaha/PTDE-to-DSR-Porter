@@ -414,9 +414,89 @@ namespace DSRPorter
                     }
                 }
 
+                if (msbName == "m12_01_00_00" && DSPorterSettings.m12_01_AddExtraDSRNavmesh)
+                {
+                    // Add additional navMesh that were added to DSR, without them ALL NAVMESH BREAKS IN OOLACILE!
+                    var navmeshSource1 = msb.Parts.Navmeshes.FindAll(n => n.ModelName == "n0006B1");
+                    var navmeshSource2 = msb.Parts.Navmeshes.FindAll(n => n.ModelName == "n0003B1");
+
+                    if (navmeshSource1.Count <= 0 || navmeshSource2.Count <= 0)
+                    {
+                        MessageBox.Show($"MSB m12_01_00_00 error: Couldn't find both of the following navmesh: \"n0006B1\" and \"n0003B1\"\n" +
+                            $"These are expected to be present in order to fix DSR m12_01_00_00 navmesh, which requires duplicating existing navmesh.",
+                            "Error");
+                    }
+                    else if (navmeshSource1.Count > 1 || navmeshSource2.Count > 1)
+                    {
+                        OutputLog.Add("MSB m12_01_00_00: navmesh \"n0006B1\" or \"n0003B1\" appear to already have multiple copies, which is expected in DSR but not PTDE. Please make sure AI utilizes navmesh properly in m12_01_00_00!");
+                    }
+                    else
+                    {
+                        MSB1.Part.Navmesh nav1a = (MSB1.Part.Navmesh)navmeshSource1.First().DeepCopy();
+                        MSB1.Part.Navmesh nav1b = (MSB1.Part.Navmesh)navmeshSource1.First().DeepCopy();
+                        MSB1.Part.Navmesh nav2a = (MSB1.Part.Navmesh)navmeshSource2.First().DeepCopy();
+                        MSB1.Part.Navmesh nav2b = (MSB1.Part.Navmesh)navmeshSource2.First().DeepCopy();
+
+                        nav1a.Name += "_0000";
+                        nav1b.Name += "_0001";
+                        nav2a.Name += "_0000";
+                        nav2b.Name += "_0001";
+
+                        nav1a.Position += new Vector3(100, 0, 0);
+                        nav1b.Position += new Vector3(200, 0, 0);
+                        nav2a.Position += new Vector3(100, 0, 0);
+                        nav2b.Position += new Vector3(200, 0, 0);
+
+                        Array.Clear(nav1a.NvmGroups);
+                        Array.Clear(nav1b.NvmGroups);
+                        Array.Clear(nav2a.NvmGroups);
+                        Array.Clear(nav2b.NvmGroups);
+                        nav1a.NvmGroups[2] = 4096;
+                        nav1b.NvmGroups[2] = 8192;
+                        nav2a.NvmGroups[2] = 16384;
+                        nav2b.NvmGroups[2] = 32768;
+
+                        void InsertAfterObj(MSB1.Part.Navmesh objToFind, MSB1.Part.Navmesh objToInsert)
+                        {
+                            var index = msb.Parts.Navmeshes.IndexOf(objToFind);
+                            msb.Parts.Navmeshes.Insert(index + 1, objToInsert);
+                        }
+                        InsertAfterObj(navmeshSource1.First(), nav1a);
+                        InsertAfterObj(nav1a, nav1b);
+                        InsertAfterObj(navmeshSource2.First(), nav2a);
+                        InsertAfterObj(nav2a, nav2b);
+                    }
+
+                }
+
                 if (DSPorterSettings.Is_SOTE)
                 {
-                    if (msbName == "m15_00_00_00")
+                    if (msbName == "m14_01_00_00")
+                    {
+                        // Rotate root seals because FFX looks worse in DSR
+                        int count = 0;
+                        foreach (var r in msb.Regions.GetEntries())
+                        {
+                            if (r.Name.ToLower().StartsWith("region_boc_n_root"))
+                            {
+                                count++;
+                                var objNum = r.Name.Split("_").Last();
+                                var rootObj = msb.Parts.Objects.Find(p => p.Name == $"o4610_n_tendril_{objNum}");
+                                if (rootObj == null)
+                                {
+                                    MessageBox.Show($"SOTE MSB error: could not find object with the name of \"o4610_n_tendril_{objNum}\"", "Error");
+                                    continue;
+                                }
+                                r.Rotation = new Vector3(-90.0f, 0, 0);
+                                r.Position = new Vector3(rootObj.Position.X, rootObj.Position.Y - 4, rootObj.Position.Z + 1);
+                            }
+                        }
+                        if (count == 0)
+                        {
+                            MessageBox.Show($"SOTE MSB error: could not find any bed of chaos root regions starting with \"region_boc_n_root\"", "Error");
+                        }
+                    }
+                    else if (msbName == "m15_00_00_00")
                     {
                         // SOTE Sen's Fortress traps
                         var trapffx1 = msb.Events.SFX.Find(e => e.Name == "SFX new trap 1");
@@ -428,9 +508,19 @@ namespace DSRPorter
                             throw new Exception("Couldn't find m15_00_00_00 SOTE new trap FFX or regions by name.");
                         }
 
-                        trapffx1.EffectID = 815;
-                        trapffx2.EffectID = 815;
+                        trapffx1.EffectID = 815; // Corrosion FFX
+                        trapffx2.EffectID = 815; // Corrosion FFX
                         trapRegion2.Position = new Vector3(74.524f, 26.275f, 266.305f);
+                    }
+                    else if (msbName == "m17_00_00_00")
+                    {
+                        // Logan's area is extra dark in DSR, add a light to the statue that's already present in PTDE.
+                        MSB1.Event.Light loganAreaTorchLight = new();
+                        loganAreaTorchLight.PartName = "m2190B0";
+                        loganAreaTorchLight.Name = "light_n_logan_light";
+                        loganAreaTorchLight.PointLightID = 39;
+                        loganAreaTorchLight.RegionName = "r_n_logan_light";
+                        msb.Events.Lights.Add(loganAreaTorchLight);
                     }
                     else if (msbName == "m18_00_00_00")
                     {
@@ -443,6 +533,15 @@ namespace DSRPorter
                             throw new Exception("Couldn't find m18_00_00_00 SOTE dreamer exit fog gate region by name.");
                         }
                         region.Position = new Vector3(0f, 0f, 0f);
+
+                        // Kiln bonfire needs different light IDs to have the contrast I want
+                        var kilnBonfire = msb.Parts.Objects.Find(o => o.Name == "o_n_bonfire");
+                        if (kilnBonfire == null)
+                        {
+                            throw new Exception("Couldn't find m18_00_00_00 kiln bonfire by name.");
+                        }
+                        kilnBonfire.LightID = 7;
+                        kilnBonfire.ScatterID = 7;
                     }
                 }
 
@@ -986,6 +1085,11 @@ namespace DSRPorter
                                         row_new["dwindleEnd"].Value = 14.0f; // From 12
                                     }
                                 }
+                                else if (item.Key.StartsWith("m17"))
+                                {
+                                    // Duke's Archives: logan's room torch
+                                    TransferParamRow(row_ptde_modded, row_new);
+                                }
                             }
                             else if (DSPorterSettings.Is_SOTE && param_old.ParamType == "LIGHT_SCATTERING_BANK")
                             {
@@ -1033,7 +1137,7 @@ namespace DSRPorter
                                 {
                                     if (item.Key.StartsWith("m14"))
                                     {
-                                        if (row_new.ID == 7 || row_new.ID == 14)
+                                        if (row_new.ID == 7 || row_new.ID == 14) // 7/14 = lava, 15 = inner izalith
                                         {
                                             // lost izalith lava
                                             row_new["colA_u"].Value = (short)((short)row_new["colA_u"].Value * 0.6f);
@@ -1049,6 +1153,23 @@ namespace DSRPorter
                                                 row_new["envDif_colA"].Value = (short)(dsrDifA * 0.6f);
                                             }
 
+                                        }
+                                        else if (row_new.ID == 15)
+                                        {
+                                            // Izalith city. Lighting sucks and I can't use PTDE
+                                            row_new["colR_0"].Value = (short)200;
+                                            row_new["colG_0"].Value = (short)155;
+                                            row_new["colB_0"].Value = (short)100;
+                                            row_new["colR_1"].Value = (short)200;
+                                            row_new["colG_1"].Value = (short)155;
+                                            row_new["colB_1"].Value = (short)100;
+                                            row_new["envDif_colR"].Value = (short)200;
+                                            row_new["envDif_colG"].Value = (short)155;
+                                            row_new["envDif_colB"].Value = (short)100;
+                                            row_new["envSpc_colR"].Value = (short)200;
+                                            row_new["envSpc_colG"].Value = (short)155;
+                                            row_new["envSpc_colB"].Value = (short)100;
+                                            row_new["envSpc_colA"].Value = (short)50;
                                         }
                                     }
                                 }
@@ -1681,10 +1802,28 @@ namespace DSRPorter
                     OutputLog.Add("Notice: All .hkx files were overwritten with copies from DSR. Modifications for these will not be ported.");
                     List<Task> taskList = new();
 
-                    //
-                    //DSRPorter_FFX();
-                    //throw new Exception("debug mode, delete us m'lord");
-                    //
+                    if (true)
+                    {
+                        MessageBox.Show("Selective exececution mode is active\n\nRemember to disable us on release, m'lord", "Notice", MessageBoxButtons.OK);
+
+                        DSRPorter_MSB();
+                        /*
+                        _paramdefs_ptde = Util.LoadParamDefXmls("DS1");
+                        _paramdefs_dsr = Util.LoadParamDefXmls("DS1R");
+                        DSRPorter_GameParam();
+                        DSRPorter_DrawParam();
+                        DSRPorter_MSB();
+                        DSRPorter_ANIBND();
+                        DSRPorter_CHRBND();
+                        DSRPorter_EMEVD();
+                        DSRPorter_MSB();
+                        DSRPorter_MSGBND();
+                        DSRPorter_LUABND();
+                        DSRPorter_ANIBND();
+                        DSRPorter_FFX();
+                        */
+                        return;
+                    }
 
                     taskList.AddRange(new List<Task>()
                     {

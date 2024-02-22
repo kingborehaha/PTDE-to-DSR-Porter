@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             Button_Browse_PTDE_Mod = new Button();
             Button_Activate = new Button();
             Button_Browse_DSR = new Button();
@@ -45,6 +46,7 @@
             label4 = new Label();
             ProgramProgressBar = new ProgressBar();
             tabPage2 = new TabPage();
+            Setting_EmptyEstusFFX = new CheckBox();
             label1 = new Label();
             Setting_RenderGroupImprovements = new CheckBox();
             Setting_Misc_DSR_Collision = new CheckBox();
@@ -54,7 +56,7 @@
             FolderBrowser_PTDE_Vanilla = new FolderBrowserDialog();
             FolderBrowser_DSR = new FolderBrowserDialog();
             toolTip1 = new ToolTip(components);
-            Setting_EmptyEstusFFX = new CheckBox();
+            Setting_m12_01_AddNewNavmesh = new CheckBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
@@ -234,6 +236,7 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(Setting_m12_01_AddNewNavmesh);
             tabPage2.Controls.Add(Setting_EmptyEstusFFX);
             tabPage2.Controls.Add(label1);
             tabPage2.Controls.Add(Setting_RenderGroupImprovements);
@@ -247,6 +250,20 @@
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Options";
             tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // Setting_EmptyEstusFFX
+            // 
+            Setting_EmptyEstusFFX.AutoSize = true;
+            Setting_EmptyEstusFFX.Checked = true;
+            Setting_EmptyEstusFFX.CheckState = CheckState.Checked;
+            Setting_EmptyEstusFFX.Location = new Point(8, 237);
+            Setting_EmptyEstusFFX.Name = "Setting_EmptyEstusFFX";
+            Setting_EmptyEstusFFX.Size = new Size(186, 19);
+            Setting_EmptyEstusFFX.TabIndex = 96;
+            Setting_EmptyEstusFFX.Text = "Empty estus uses different FFX";
+            toolTip1.SetToolTip(Setting_EmptyEstusFFX, "Unlike PTDE, DSR uses two different FFX for empty estus and fill estus. With this setting, estus will be made to use these two FFX.");
+            Setting_EmptyEstusFFX.UseVisualStyleBackColor = true;
+            Setting_EmptyEstusFFX.CheckedChanged += Setting_EmptyEstusFFX_CheckedChanged;
             // 
             // label1
             // 
@@ -335,19 +352,19 @@
             FolderBrowser_DSR.ShowNewFolderButton = false;
             FolderBrowser_DSR.UseDescriptionForTitle = true;
             // 
-            // Setting_EmptyEstusFFX
+            // Setting_m12_01_navmesh_fix
             // 
-            Setting_EmptyEstusFFX.AutoSize = true;
-            Setting_EmptyEstusFFX.Checked = true;
-            Setting_EmptyEstusFFX.CheckState = CheckState.Checked;
-            Setting_EmptyEstusFFX.Location = new Point(8, 237);
-            Setting_EmptyEstusFFX.Name = "Setting_EmptyEstusFFX";
-            Setting_EmptyEstusFFX.Size = new Size(186, 19);
-            Setting_EmptyEstusFFX.TabIndex = 96;
-            Setting_EmptyEstusFFX.Text = "Empty estus uses different FFX";
-            toolTip1.SetToolTip(Setting_EmptyEstusFFX, "Unlike PTDE, DSR uses two different FFX for empty estus and fill estus. With this setting, estus will be made to use these two FFX.");
-            Setting_EmptyEstusFFX.UseVisualStyleBackColor = true;
-            Setting_EmptyEstusFFX.CheckedChanged += Setting_EmptyEstusFFX_CheckedChanged;
+            Setting_m12_01_AddNewNavmesh.AutoSize = true;
+            Setting_m12_01_AddNewNavmesh.Checked = true;
+            Setting_m12_01_AddNewNavmesh.CheckState = CheckState.Checked;
+            Setting_m12_01_AddNewNavmesh.Location = new Point(8, 262);
+            Setting_m12_01_AddNewNavmesh.Name = "Setting_m12_01_navmesh_fix";
+            Setting_m12_01_AddNewNavmesh.Size = new Size(191, 19);
+            Setting_m12_01_AddNewNavmesh.TabIndex = 97;
+            Setting_m12_01_AddNewNavmesh.Text = "Add new DSR m12_01 navmesh";
+            toolTip1.SetToolTip(Setting_m12_01_AddNewNavmesh, resources.GetString("Setting_m12_01_navmesh_fix.ToolTip"));
+            Setting_m12_01_AddNewNavmesh.UseVisualStyleBackColor = true;
+            Setting_m12_01_AddNewNavmesh.CheckedChanged += Setting_m12_01_navmesh_fix_CheckedChanged;
             // 
             // MainForm
             // 
@@ -395,5 +412,6 @@
         private ToolTip toolTip1;
         private Label label1;
         private CheckBox Setting_EmptyEstusFFX;
+        private CheckBox Setting_m12_01_AddNewNavmesh;
     }
 }

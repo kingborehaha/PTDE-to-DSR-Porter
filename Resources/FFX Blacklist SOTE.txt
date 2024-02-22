@@ -16,3 +16,10 @@
 81700
 81800
 //
+
+// Bed of Chaos
+140012 // Root seal sphere (ported FFX is way too opaque for some reason)
+15411 // Fireball projectile
+15415 // Firestorm pillar
+15416 // Firestorm notifier
+
