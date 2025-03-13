@@ -200,8 +200,8 @@ namespace DSRPorter
 
         private void DSRPorter_EMEVD()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\event", "*.emevd");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\event", "*.emevd", out var paths);
+            if (!result)
                 return;
             foreach (var path in paths)
             {
@@ -215,9 +215,12 @@ namespace DSRPorter
         private bool _MSBFinished = false;
         private void DSRPorter_MSB()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\map\mapstudio", "*.msb");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\map\mapstudio", "*.msb", out var paths);
+            if (!result)
+            {
+                _MSBFinished = true;
                 return;
+            }
 
             foreach (var path in paths)
             {
@@ -575,8 +578,8 @@ namespace DSRPorter
 
         private void DSRPorter_FFX()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\sfx", "*.ffxbnd");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\sfx", "*.ffxbnd", out var paths);
+            if (!result)
                 return;
 
             // List for porting blacklisted FFX from bnd to bnd
@@ -868,8 +871,8 @@ namespace DSRPorter
 
         private void DSRPorter_MSGBND()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\msg", "*.msgbnd", SearchOption.AllDirectories);
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\msg", "*.msgbnd", SearchOption.AllDirectories, out var paths);
+            if (!result)
                 return;
 
             List<BinderFile> files_old = new();
@@ -905,8 +908,8 @@ namespace DSRPorter
 
         private void DSRPorter_TransferParams(string datapath, bool isDrawParam = false)
         {
-            var paths = Directory.GetFiles(datapath, "*.parambnd");
-            if (paths.Length == 0)
+            var result = TryGetFiles(datapath, "*.parambnd", out var paths);
+            if (!result)
                 return;
 
             while (!_paramdefs_ptde.Any() || !_paramdefs_dsr.Any())
@@ -1239,8 +1242,8 @@ namespace DSRPorter
 
         private void DSRPorter_ANIBND()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\chr", "*.anibnd");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\chr", "*.anibnd", out var paths);
+            if (!result)
                 return;
             foreach (var bndPath_old in paths)
             {
@@ -1257,8 +1260,8 @@ namespace DSRPorter
 
         private void DSRPorter_CHRBND()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\chr", "*.chrbnd");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\chr", "*.chrbnd", out var paths);
+            if (!result)
                 return;
             foreach (var bndPath_old in paths)
             {
@@ -1437,9 +1440,12 @@ namespace DSRPorter
         private bool _objBNDFinished = false;
         private void DSRPorter_OBJBND()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\obj", "*.objbnd");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\obj", "*.objbnd", out var paths);
+            if (!result)
+            {
+                _objBNDFinished = true;
                 return;
+            }
             foreach (var bndPath_old in paths)
             {
                 string bndPath_new = bndPath_old.Replace(DataPath_PTDE_Mod, $@"{DataPath_DSR}") + ".dcx";
@@ -1456,8 +1462,8 @@ namespace DSRPorter
 
         private void DSRPorter_ESD()
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\script\talk", "*.talkesdbnd");
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\script\talk", "*.talkesdbnd", out var paths);
+            if (!result)
                 return;
             foreach (var path in paths)
             {
@@ -1485,8 +1491,8 @@ namespace DSRPorter
 
         private void DSRPorter_GenericFiles(string directory, string searchPattern)
         {
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\{directory}", searchPattern);
-            if (paths.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\{directory}", searchPattern, out var paths);
+            if (!result)
                 return;
             foreach (var path in paths)
             {
@@ -1499,10 +1505,10 @@ namespace DSRPorter
         private void DSRPorter_GenericBNDs(string directory, string searchPattern, bool compress, bool searchInnerFolders = false)
         {
             SearchOption searchOption = searchInnerFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            var paths = Directory.GetFiles($@"{DataPath_PTDE_Mod}\{directory}", searchPattern, searchOption);
-            if (paths.Length == 0)
-                return;
 
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\{directory}", searchPattern, searchOption, out var paths);
+            if (!result)
+                return;
             foreach (var path in paths)
             {
                 BND3 bnd = BND3.Read(path);
@@ -1550,8 +1556,8 @@ namespace DSRPorter
 
         private void DSRPorter_LUABND()
         {
-            var files_old = Directory.GetFiles($@"{DataPath_PTDE_Mod}\script", "*.luabnd");
-            if (files_old.Length == 0)
+            var result = TryGetFiles($@"{DataPath_PTDE_Mod}\script", "*.luabnd", out var files_old);
+            if (!result)
                 return;
 
             List<BinderFile> files_DSR_list = new();
@@ -1806,7 +1812,7 @@ namespace DSRPorter
                     {
                         MessageBox.Show("Selective execcution mode is active\n\nRemember to disable us on release, m'lord", "Notice", MessageBoxButtons.OK);
 
-                        DSRPorter_MSB();
+                        DSRPorter_MSGBND();
                         /*
                         _paramdefs_ptde = Util.LoadParamDefXmls("DS1");
                         _paramdefs_dsr = Util.LoadParamDefXmls("DS1R");

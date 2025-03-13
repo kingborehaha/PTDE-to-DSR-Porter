@@ -12,6 +12,21 @@ namespace DSRPorter
 {
     public partial class DSPorter
     {
+        public static bool TryGetFiles(string dir, string filePattern, out string[] paths)
+        {
+            return TryGetFiles(dir, filePattern, SearchOption.TopDirectoryOnly, out paths);
+        }
+        public static bool TryGetFiles(string dir, string filePattern, SearchOption option, out string[] paths)
+        {
+            if (!Directory.Exists(dir))
+            {
+                paths = null;
+                return false;
+            }
+            paths = Directory.GetFiles(dir, filePattern, option);
+            return paths.Length > 0;
+        }
+
         private static void TransferParamRow(PARAM.Row row_old, PARAM.Row row_new)
         {
             for (var iField = 0; iField < row_old.Cells.Count; iField++)
