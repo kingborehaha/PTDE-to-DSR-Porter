@@ -912,6 +912,10 @@ namespace DSRPorter
             if (!result)
                 return;
 
+            while (_paramdefs_ptde == null || _paramdefs_dsr == null)
+            {
+                Thread.Sleep(1000);
+            }
             while (!_paramdefs_ptde.Any() || !_paramdefs_dsr.Any())
             {
                 Thread.Sleep(1000);
