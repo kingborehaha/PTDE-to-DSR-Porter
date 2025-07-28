@@ -1711,8 +1711,11 @@ namespace DSRPorter
 
             foreach (var obj in _objsToPort)
             {
-                texPorter.SelfContainTextures_Objbnd(obj);
-                OutputLog.Add($@"Implemented self-contained textures to {obj}");
+                var result = texPorter.SelfContainTextures_Objbnd(obj);
+                if (result)
+                {
+                    OutputLog.Add($@"Implemented self-contained textures with {obj}");
+                }
                 IncrementProgressBar(1 + progressBarTotal / _objsToPort.Count);
             }
         }

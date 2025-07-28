@@ -136,7 +136,7 @@ namespace DSRPorter
         /// <param name="modelName"></param>
         /// <param name="alwaysPort">Port even if self-contained texture processing fails (will not port in all cases).</param>
         /// <exception cref="NotImplementedException"></exception>
-        public void SelfContainTextures_Objbnd(string modelName)
+        public bool SelfContainTextures_Objbnd(string modelName)
         {
             string bndPath = $@"{_porter.DataPath_Output}\obj\{modelName}.objbnd.dcx";
             string dataPath = _porter.DataPath_Output;
@@ -150,7 +150,7 @@ namespace DSRPorter
             if (!File.Exists(bndPath))
             {
                 _porter.OutputLog.Add($"TEXTURE: Couldn't find \"{bndPath}\" in DSR data, skipped self-contained texture processing.");
-                return;
+                return false;
             }
 
             BND3 objBND = BND3.Read(bndPath);
@@ -160,7 +160,7 @@ namespace DSRPorter
                 {
                     // Already has self contained textures.
                     _porter.OutputLog.Add($"TEXTURE: Skipped self-contained texture processing for \"{bndPath}\" since it already has texture data.");
-                    return;
+                    return false;
                 }
                 if (file.ID == 100)
                 {
@@ -180,10 +180,12 @@ namespace DSRPorter
                 };
                 objBND.Files.Insert(0, binder);
                 Util.WritePortedSoulsFile(objBND, dataPath, bndPath, _porter.CompressionType);
+                return true;
             }
             else
             {
                 _porter.OutputLog.Add($"TEXTURE: Couldn't finish self-contained texture processing for \"{bndPath}\", object was skipped.");
+                return false;
             }
         }
     }
